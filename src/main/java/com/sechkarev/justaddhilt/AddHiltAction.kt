@@ -1,5 +1,6 @@
 package com.sechkarev.justaddhilt
 
+import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
 import com.intellij.notification.NotificationDisplayType
@@ -7,8 +8,11 @@ import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.psi.codeStyle.CodeStyleManager
+import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 class AddHiltAction : AnAction() {
 
@@ -18,16 +22,37 @@ class AddHiltAction : AnAction() {
         val project = e.project ?: return
 
         val projectBuildModel = ProjectBuildModel.get(project).projectBuildModel // todo: what does this mean if this is null?
-        val mavenCentralPresent = projectBuildModel
-            ?.repositories()
-            ?.containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-
-        val mavenCentralPresentString = "Maven Central is present in repos = $mavenCentralPresent"
-
-        logger.debug(mavenCentralPresentString)
-
-        showNotification(project, mavenCentralPresentString)
+        checkMavenCentral(projectBuildModel)
+        executeCommand {
+            runWriteAction {
+                projectBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
+                checkMavenCentral(projectBuildModel)
+            }
+        }
+        // fixme these commands don't seem to be executed
+        executeCommand {
+            runWriteAction {
+                val psiElement = projectBuildModel?.psiElement
+                logger.warn("psiElement = $psiElement")
+                psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
+            }
+        }
+        executeCommand {
+            runWriteAction {
+                projectBuildModel?.applyChanges()
+            }
+        }
     }
+
+    private fun checkMavenCentral(projectBuildModel: GradleBuildModel?) {
+        val mavenCentralPresent = projectBuildModel?.mavenCentralPresent()
+        val mavenCentralPresentString = "Maven Central is present in repos = $mavenCentralPresent"
+        logger.warn(mavenCentralPresentString)
+    }
+
+    private fun GradleBuildModel.mavenCentralPresent() = this
+        .repositories()
+        .containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
 
     private fun showNotification(project: Project, text: String = "My Message") {
         val noti = NotificationGroup("myplugin", NotificationDisplayType.BALLOON, true)
