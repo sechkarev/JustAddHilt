@@ -27,19 +27,8 @@ class AddHiltAction : AnAction() {
             runWriteAction {
                 projectBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
                 checkMavenCentral(projectBuildModel)
-            }
-        }
-        // fixme these commands don't seem to be executed
-        executeCommand {
-            runWriteAction {
-                val psiElement = projectBuildModel?.psiElement
-                logger.warn("psiElement = $psiElement")
-                psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
-            }
-        }
-        executeCommand {
-            runWriteAction {
                 projectBuildModel?.applyChanges()
+                projectBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
             }
         }
     }
