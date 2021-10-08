@@ -16,13 +16,23 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.psi.PsiFile
 import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.xml.XmlTag
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
+import org.jetbrains.kotlin.idea.structuralsearch.visitor.KotlinRecursiveElementVisitor
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
+import org.jetbrains.kotlin.idea.util.findAnnotation
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.psi.KtAnnotation
+import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtModifierList
 
 class AddHiltAction : AnAction() {
 
@@ -44,8 +54,20 @@ class AddHiltAction : AnAction() {
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
         val androidFacets = androidBaseBuildModels.mapNotNull { it.psiElement?.let { psiElement -> AndroidFacet.getInstance(psiElement) } }
         logger.warn("androidFacets: " + androidFacets.joinToString { it.module.name })
-        val applicationNames = androidFacets.map { it.getPrimaryManifestXml()?.findApplicationName() }
+        val applicationNames = androidFacets.mapNotNull { it.getPrimaryManifestXml()?.findApplicationName() }
         logger.warn("applicationNames: ${applicationNames.joinToString()}")
+//        FilenameIndex.getAllFilenames(project).filter { it.contains("application", ignoreCase = true) }.joinToString().let { logger.warn("all application filenames: $it") }
+        androidFacets.forEach {
+            val applicationName = it.getPrimaryManifestXml()?.findApplicationName() ?: return@forEach
+            // todo: this finds nothing. how to map pathname from the manifest to the actual file?
+            FilenameIndex.getFilesByName(
+                project,
+                applicationName,
+                GlobalSearchScope.moduleScope(it.module)
+            ).forEach { psiFile ->
+                logger.warn("file ${psiFile.name} contains hilt annotation = ${psiFile.containsHiltAnnotation()}")
+            }
+        }
         executeCommand {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
@@ -112,6 +134,20 @@ class AddHiltAction : AnAction() {
                 super.visitXmlTag(tag)
                 if ("application" != tag?.name) return
                 tag.getAttributeValue(SdkConstants.ATTR_NAME, SdkConstants.ANDROID_URI)?.let { result = it }
+            }
+        })
+        return result
+    }
+
+    private fun PsiFile.containsHiltAnnotation(): Boolean {
+        var result = false
+        accept(object : KotlinRecursiveElementVisitor() {
+            override fun visitClass(klass: KtClass) {
+                super.visitClass(klass)
+                // todo: I need only the APPLICATION class (now I inspect all classes), have to distinguish.
+                if (klass.findAnnotation(FqName("HiltAndroidApp")) != null) {
+                    result = true
+                }
             }
         })
         return result
