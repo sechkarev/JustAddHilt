@@ -1,6 +1,7 @@
 package com.sechkarev.justaddhilt
 
 import com.android.SdkConstants
+import com.android.tools.idea.gradle.dsl.api.BuildScriptModel
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
@@ -46,6 +47,14 @@ class AddHiltAction : AnAction() {
         executeCommand {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
+                // todo: how to distinguish between PROJECT build model and MODULE build model? That's important, because I want to add different dependencies...
+                androidBaseBuildModels.forEach {
+                    it.dependencies().addArtifact(
+                        "implementation",
+                        "com.google.dagger:hilt-android:2.39.1"
+                    ) // todo: scrap(?) the fresh version
+                    it.applyChanges()
+                }
                 projectGradleBuildModel?.applyChanges()
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
                 // todo: sync gradle somehow
