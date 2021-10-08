@@ -22,11 +22,9 @@ class AddHiltAction : AnAction() {
         val project = e.project ?: return
 
         val projectBuildModel = ProjectBuildModel.get(project).projectBuildModel // todo: what does this mean if this is null?
-        checkMavenCentral(projectBuildModel)
         executeCommand {
             runWriteAction {
                 projectBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-                checkMavenCentral(projectBuildModel)
                 projectBuildModel?.applyChanges()
                 projectBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
             }
