@@ -4,6 +4,8 @@ import com.android.SdkConstants
 import com.android.tools.idea.gradle.dsl.api.BuildScriptModel
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
+import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
+import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
 import com.intellij.notification.NotificationDisplayType
@@ -49,11 +51,14 @@ class AddHiltAction : AnAction() {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
                 // todo: how to distinguish between PROJECT build model and MODULE build model? That's important, because I want to add different dependencies...
                 androidBaseBuildModels.forEach {
-                    it.dependencies().addArtifact(
-                        "implementation",
-                        "com.google.dagger:hilt-android:2.39.1"
-                    ) // todo: scrap(?) the fresh version
-                    it.applyChanges()
+                    if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android:")) {
+                        it.dependencies().addArtifact(
+                            "implementation",
+                            "com.google.dagger:hilt-android:2.39.1"
+                        ) // todo: scrap(?) the fresh version
+                        it.applyChanges()
+                        it.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
+                    }
                 }
                 projectGradleBuildModel?.applyChanges()
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
@@ -80,6 +85,24 @@ class AddHiltAction : AnAction() {
             type = NotificationType.INFORMATION,
             listener = null,
         ).notify(project)
+    }
+
+    private fun isDependencyExist(dependenciesModel: DependenciesModel, dependencyName: String): Boolean {
+        return dependenciesModel
+            .all()
+            .any { dependencyModel ->
+                dependencyModel is ArtifactDependencyModel
+                        && dependencyModel.isEqualName(dependencyName)
+            }
+    }
+
+
+    private fun ArtifactDependencyModel.isEqualName(dependencyName: String) =
+        getGroupName() == dependencyName
+
+
+    private fun ArtifactDependencyModel.getGroupName(): String {
+        return group().toString() + ":" + name().toString() + ":"
     }
 
     private fun AndroidManifestXmlFile.findApplicationName(): String? {
