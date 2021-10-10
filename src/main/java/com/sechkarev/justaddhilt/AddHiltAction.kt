@@ -19,25 +19,32 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
-import com.intellij.psi.XmlRecursiveElementVisitor
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.util.ClassUtil
+import com.intellij.psi.util.PsiElementFilter
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
+import com.intellij.refactoring.extractMethod.newImpl.ExtractMethodHelper.addSiblingAfter
 import com.intellij.util.concurrency.SameThreadExecutor
 import io.netty.util.concurrent.SingleThreadEventExecutor
 import kotlinx.coroutines.guava.await
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
+import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
+import org.jetbrains.kotlin.asJava.classes.KtUltraLightSimpleAnnotation
+import org.jetbrains.kotlin.asJava.classes.KtUltraLightSupport
+import org.jetbrains.kotlin.asJava.elements.KtLightAnnotationForSourceEntry
+import org.jetbrains.kotlin.asJava.elements.KtLightTypeParameter
+import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.structuralsearch.visitor.KotlinRecursiveElementVisitor
+import org.jetbrains.kotlin.idea.util.addAnnotation
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.findAnnotation
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtPsiFactory
+import org.jetbrains.kotlin.psi.*
 import java.util.concurrent.Executor
 
 class AddHiltAction : AnAction() {
@@ -96,11 +103,23 @@ class AddHiltAction : AnAction() {
                     }
                     val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
                     val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
-                    logger.warn("Class ${applicationPsiClass.qualifiedName} contains hilt annotation = ${hiltAnnotation != null}")
-                    if (hiltAnnotation == null) {  // todo: works only in java!
-                        val addedAnnotation = applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp")
-                        addedAnnotation?.let { JavaCodeStyleManager.getInstance(project).shortenClassReferences(it) }
-                        CodeStyleManager.getInstance(project).reformat(applicationPsiClass)
+                    logger.warn("Class ${applicationPsiClass.qualifiedName} written in ${applicationPsiClass.language} contains hilt annotation = ${hiltAnnotation != null}")
+                    if (hiltAnnotation == null) {
+                        if (applicationPsiClass.language is JavaLanguage) {
+                            val addedAnnotation =
+                                applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp")
+                            addedAnnotation?.let {
+                                JavaCodeStyleManager.getInstance(project).shortenClassReferences(it)
+                            }
+                            CodeStyleManager.getInstance(project).reformat(applicationPsiClass)
+                            logger.warn("Adding Hilt annotation to Java class ${applicationPsiClass.qualifiedName}")
+                        } else if (applicationPsiClass.language is KotlinLanguage) {
+                            logger.warn("Application PSI class is ${applicationPsiClass::class.qualifiedName}, can be cast to KtClass = ${applicationPsiClass is KtClass}")
+                            // applicationPsiClass is an Ultra Light CLass whatever this is fuck you
+                            logger.warn("Adding Hilt annotation to Kotlin class ${applicationPsiClass.qualifiedName} inside file ${applicationPsiClass.containingFile.name}")
+                            logger.warn("File with app class contains the following elements: ${PsiTreeUtil.getChildrenOfAnyType(applicationPsiClass.containingFile, PsiElement::class.java).filterNotNull().joinToString { it.javaClass.canonicalName ?: it.javaClass.name ?: "null" }}")
+                            // todo: nothing works! I can try working with the file as a text though...
+                        }
                     }
                 }
             }
