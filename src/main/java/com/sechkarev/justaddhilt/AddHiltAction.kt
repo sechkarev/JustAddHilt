@@ -76,6 +76,7 @@ class AddHiltAction : AnAction() {
                         it.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
                     }
                 }
+                // todo: do this ONLY IF THE DEPENDENCY DOESN't EXIST
                 projectGradleBuildModel?.applyChanges()
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
                 val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
@@ -127,6 +128,7 @@ class AddHiltAction : AnAction() {
                 }
             }
         }
+        // todo: next step: generate App class with Free Marker
     }
 
     private fun checkMavenCentral(projectBuildModel: GradleBuildModel?) {
