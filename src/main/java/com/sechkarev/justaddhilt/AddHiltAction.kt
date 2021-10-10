@@ -1,6 +1,7 @@
 package com.sechkarev.justaddhilt
 
 import com.android.SdkConstants
+import com.android.tools.idea.concurrency.addCallback
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
@@ -9,17 +10,24 @@ import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
 import com.android.tools.idea.gradle.structure.model.meta.ValueAnnotation
 import com.android.tools.idea.gradle.structure.model.meta.annotateWith
+import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
+import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.ClassUtil
 import com.intellij.psi.xml.XmlTag
+import com.intellij.util.concurrency.SameThreadExecutor
+import io.netty.util.concurrent.SingleThreadEventExecutor
+import kotlinx.coroutines.guava.await
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
@@ -29,6 +37,7 @@ import org.jetbrains.kotlin.idea.util.findAnnotation
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtPsiFactory
+import java.util.concurrent.Executor
 
 class AddHiltAction : AnAction() {
 
@@ -61,28 +70,38 @@ class AddHiltAction : AnAction() {
                 }
                 projectGradleBuildModel?.applyChanges()
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
-                // todo: sync gradle somehow
+                val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
+                listenableFuture.addListener(
+                    { addAnnotationToApplicationClasses(project, androidBaseBuildModels) },
+                    { DumbService.getInstance(project).smartInvokeLater(it) },
+                )
             }
         }
+
+    }
+
+    private fun addAnnotationToApplicationClasses(project: Project, androidBaseBuildModels: List<GradleBuildModel>) {
         val androidFacets = androidBaseBuildModels.mapNotNull { it.psiElement?.let { psiElement -> AndroidFacet.getInstance(psiElement) } }
         logger.warn("androidFacets: " + androidFacets.joinToString { it.module.name })
-        androidFacets.forEach { androidFacet ->
-            val primaryManifestXml = androidFacet.getPrimaryManifestXml()
-            val applicationName = primaryManifestXml?.findApplicationName()
-            val packageName = primaryManifestXml?.packageName
-            val fullClassName = packageName + applicationName
-            val applicationPsiClass = ClassUtil.findPsiClass(PsiManager.getInstance(project), fullClassName) ?: run {
-                logger.warn("No class found by name: $fullClassName")
-                return@forEach
-            }
-            val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
-            val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
-            logger.warn("Class ${applicationPsiClass.qualifiedName} contains hilt annotation = ${hiltAnnotation != null}")
-            if (hiltAnnotation == null && applicationPsiClass.language is JavaLanguage) {  // todo: language dependency?
-                executeCommand {
-                    runWriteAction {
+        executeCommand {
+            runWriteAction {
+                androidFacets.forEach { androidFacet ->
+                    val primaryManifestXml = androidFacet.getPrimaryManifestXml()
+                    val applicationName = primaryManifestXml?.findApplicationName()
+                    val packageName = primaryManifestXml?.packageName
+                    val fullClassName = packageName + applicationName
+                    val applicationPsiClass = ClassUtil.findPsiClass(PsiManager.getInstance(project), fullClassName) ?: run {
+                        logger.warn("No class found by name: $fullClassName")
+                        return@forEach
+                    }
+                    val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
+                    val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
+                    logger.warn("Class ${applicationPsiClass.qualifiedName} contains hilt annotation = ${hiltAnnotation != null}")
+                    if (hiltAnnotation == null && applicationPsiClass.language is JavaLanguage) {  // todo: language dependency?
                         applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp") // todo: throws an exception for some reason!
                         CodeStyleManager.getInstance(project).reformat(applicationPsiClass)
+                        // todo: somehow replace fully qualified name with import?
+
                     }
                 }
             }
