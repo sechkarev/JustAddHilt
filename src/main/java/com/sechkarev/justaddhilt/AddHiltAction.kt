@@ -27,6 +27,7 @@ import com.intellij.psi.util.PsiElementFilter
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.refactoring.extractMethod.newImpl.ExtractMethodHelper.addSiblingAfter
+import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.concurrency.SameThreadExecutor
 import io.netty.util.concurrent.SingleThreadEventExecutor
 import kotlinx.coroutines.guava.await
@@ -115,10 +116,12 @@ class AddHiltAction : AnAction() {
                             logger.warn("Adding Hilt annotation to Java class ${applicationPsiClass.qualifiedName}")
                         } else if (applicationPsiClass.language is KotlinLanguage) {
                             logger.warn("Application PSI class is ${applicationPsiClass::class.qualifiedName}, can be cast to KtClass = ${applicationPsiClass is KtClass}")
-                            // applicationPsiClass is an Ultra Light CLass whatever this is fuck you
+                            // applicationPsiClass is an Ultra Light CLass whatever this is fuck you, and modifierList?.addAnnotation throws UnsupportedOperationException or smth
                             logger.warn("Adding Hilt annotation to Kotlin class ${applicationPsiClass.qualifiedName} inside file ${applicationPsiClass.containingFile.name}")
                             logger.warn("File with app class contains the following elements: ${PsiTreeUtil.getChildrenOfAnyType(applicationPsiClass.containingFile, PsiElement::class.java).filterNotNull().joinToString { it.javaClass.canonicalName ?: it.javaClass.name ?: "null" }}")
                             // todo: nothing works! I can try working with the file as a text though...
+                            val document = PsiDocumentManager.getInstance(project).getDocument(applicationPsiClass.containingFile)
+                            document?.insertString(applicationPsiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
                         }
                     }
                 }
