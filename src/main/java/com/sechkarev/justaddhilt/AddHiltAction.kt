@@ -23,6 +23,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.util.ClassUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.util.concurrency.SameThreadExecutor
@@ -57,7 +58,6 @@ class AddHiltAction : AnAction() {
         executeCommand {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-                // todo: how to distinguish between PROJECT build model and MODULE build model? That's important, because I want to add different dependencies...
                 androidBaseBuildModels.forEach {
                     if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android:")) {
                         it.dependencies().addArtifact(
@@ -97,11 +97,10 @@ class AddHiltAction : AnAction() {
                     val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
                     val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
                     logger.warn("Class ${applicationPsiClass.qualifiedName} contains hilt annotation = ${hiltAnnotation != null}")
-                    if (hiltAnnotation == null && applicationPsiClass.language is JavaLanguage) {  // todo: language dependency?
-                        applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp") // todo: throws an exception for some reason!
+                    if (hiltAnnotation == null) {  // todo: works only in java!
+                        val addedAnnotation = applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp")
+                        addedAnnotation?.let { JavaCodeStyleManager.getInstance(project).shortenClassReferences(it) }
                         CodeStyleManager.getInstance(project).reformat(applicationPsiClass)
-                        // todo: somehow replace fully qualified name with import?
-
                     }
                 }
             }
@@ -143,20 +142,6 @@ class AddHiltAction : AnAction() {
                 super.visitXmlTag(tag)
                 if ("application" != tag?.name) return
                 tag.getAttributeValue(SdkConstants.ATTR_NAME, SdkConstants.ANDROID_URI)?.let { result = it }
-            }
-        })
-        return result
-    }
-
-    private fun PsiFile.containsHiltAnnotation(): Boolean {
-        var result = false
-        accept(object : KotlinRecursiveElementVisitor() {
-            override fun visitClass(klass: KtClass) {
-                super.visitClass(klass)
-                // todo: I need only the APPLICATION class (now I inspect all classes), have to distinguish.
-                if (klass.findAnnotation(FqName("HiltAndroidApp")) != null) {
-                    result = true
-                }
             }
         })
         return result
