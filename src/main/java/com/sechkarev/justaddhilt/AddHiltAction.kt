@@ -119,9 +119,9 @@ class AddHiltAction : AnAction() {
                             // applicationPsiClass is an Ultra Light CLass whatever this is fuck you, and modifierList?.addAnnotation throws UnsupportedOperationException or smth
                             logger.warn("Adding Hilt annotation to Kotlin class ${applicationPsiClass.qualifiedName} inside file ${applicationPsiClass.containingFile.name}")
                             logger.warn("File with app class contains the following elements: ${PsiTreeUtil.getChildrenOfAnyType(applicationPsiClass.containingFile, PsiElement::class.java).filterNotNull().joinToString { it.javaClass.canonicalName ?: it.javaClass.name ?: "null" }}")
-                            // todo: nothing works! I can try working with the file as a text though...
                             val document = PsiDocumentManager.getInstance(project).getDocument(applicationPsiClass.containingFile)
                             document?.insertString(applicationPsiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
+                            // todo: shorten class references and reformat
                         }
                     }
                 }
