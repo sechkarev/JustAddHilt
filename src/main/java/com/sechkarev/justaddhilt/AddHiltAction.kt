@@ -1,30 +1,23 @@
 package com.sechkarev.justaddhilt
 
 import com.android.SdkConstants
-import com.android.tools.idea.gradle.dsl.api.BuildScriptModel
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
-import com.intellij.notification.NotificationDisplayType
-import com.intellij.notification.NotificationGroup
-import com.intellij.notification.NotificationType
+import com.android.tools.idea.gradle.structure.model.meta.ValueAnnotation
+import com.android.tools.idea.gradle.structure.model.meta.annotateWith
+import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.intellij.psi.search.FilenameIndex
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.ClassUtil
 import com.intellij.psi.xml.XmlTag
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
@@ -34,10 +27,8 @@ import org.jetbrains.kotlin.idea.structuralsearch.visitor.KotlinRecursiveElement
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.util.findAnnotation
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.KtAnnotation
 import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtModifierList
-import java.io.File
+import org.jetbrains.kotlin.psi.KtPsiFactory
 
 class AddHiltAction : AnAction() {
 
@@ -48,29 +39,12 @@ class AddHiltAction : AnAction() {
 
         val projectBuildModel = ProjectBuildModel.get(project)
         val projectGradleBuildModel = projectBuildModel.projectBuildModel // todo: what does this mean if this is null?
-//        projectBuildModel.allIncludedBuildModels.forEachIndexed { index, it ->
-//            logger.warn(index.toString() + " - " + it.moduleRootDirectory.absolutePath + ": " + PluginModel.extractNames(it.plugins()))
-//        }
         val androidBaseBuildModels = projectBuildModel.allIncludedBuildModels.filter { moduleBuildModel ->
             moduleBuildModel.plugins().any { plugin ->
                 plugin.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("com.android.application") == true
             }
         }
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
-        val androidFacets = androidBaseBuildModels.mapNotNull { it.psiElement?.let { psiElement -> AndroidFacet.getInstance(psiElement) } }
-        logger.warn("androidFacets: " + androidFacets.joinToString { it.module.name })
-        androidFacets.forEach { androidFacet ->
-            val primaryManifestXml = androidFacet.getPrimaryManifestXml()
-            val applicationName = primaryManifestXml?.findApplicationName()
-            val packageName = primaryManifestXml?.packageName
-            val fullClassName = packageName + applicationName
-            val applicationPsiClass = ClassUtil.findPsiClass(PsiManager.getInstance(project), fullClassName) ?: run {
-                logger.warn("No class found by name: $fullClassName")
-                return@forEach
-            }
-            val applicationClassContainsHiltAnnotation = applicationPsiClass.annotations.any { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
-            logger.warn("Class ${applicationPsiClass.name} contains hilt annotation = $applicationClassContainsHiltAnnotation")
-        }
         executeCommand {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
@@ -90,6 +64,29 @@ class AddHiltAction : AnAction() {
                 // todo: sync gradle somehow
             }
         }
+        val androidFacets = androidBaseBuildModels.mapNotNull { it.psiElement?.let { psiElement -> AndroidFacet.getInstance(psiElement) } }
+        logger.warn("androidFacets: " + androidFacets.joinToString { it.module.name })
+        androidFacets.forEach { androidFacet ->
+            val primaryManifestXml = androidFacet.getPrimaryManifestXml()
+            val applicationName = primaryManifestXml?.findApplicationName()
+            val packageName = primaryManifestXml?.packageName
+            val fullClassName = packageName + applicationName
+            val applicationPsiClass = ClassUtil.findPsiClass(PsiManager.getInstance(project), fullClassName) ?: run {
+                logger.warn("No class found by name: $fullClassName")
+                return@forEach
+            }
+            val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
+            val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
+            logger.warn("Class ${applicationPsiClass.qualifiedName} contains hilt annotation = ${hiltAnnotation != null}")
+            if (hiltAnnotation == null && applicationPsiClass.language is JavaLanguage) {  // todo: language dependency?
+                executeCommand {
+                    runWriteAction {
+                        applicationPsiClass.modifierList?.addAnnotation("dagger.hilt.android.HiltAndroidApp") // todo: throws an exception for some reason!
+                        CodeStyleManager.getInstance(project).reformat(applicationPsiClass)
+                    }
+                }
+            }
+        }
     }
 
     private fun checkMavenCentral(projectBuildModel: GradleBuildModel?) {
@@ -101,16 +98,6 @@ class AddHiltAction : AnAction() {
     private fun GradleBuildModel.mavenCentralPresent() = this
         .repositories()
         .containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-
-    private fun showNotification(project: Project, text: String = "My Message") {
-        val noti = NotificationGroup("myplugin", NotificationDisplayType.BALLOON, true)
-        noti.createNotification(
-            title = "Just add Hilt",
-            content = text,
-            type = NotificationType.INFORMATION,
-            listener = null,
-        ).notify(project)
-    }
 
     private fun isDependencyExist(dependenciesModel: DependenciesModel, dependencyName: String): Boolean {
         return dependenciesModel
