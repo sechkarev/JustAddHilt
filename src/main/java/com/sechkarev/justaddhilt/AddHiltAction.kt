@@ -1,15 +1,12 @@
 package com.sechkarev.justaddhilt
 
 import com.android.SdkConstants
-import com.android.tools.idea.concurrency.addCallback
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
-import com.android.tools.idea.gradle.structure.model.meta.ValueAnnotation
-import com.android.tools.idea.gradle.structure.model.meta.annotateWith
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
 import com.intellij.lang.java.JavaLanguage
@@ -19,34 +16,22 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.psi.*
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
+import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.util.ClassUtil
-import com.intellij.psi.util.PsiElementFilter
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
-import com.intellij.refactoring.extractMethod.newImpl.ExtractMethodHelper.addSiblingAfter
 import com.intellij.refactoring.suggested.startOffset
-import com.intellij.util.concurrency.SameThreadExecutor
-import io.netty.util.concurrent.SingleThreadEventExecutor
-import kotlinx.coroutines.guava.await
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
-import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
-import org.jetbrains.kotlin.asJava.classes.KtUltraLightSimpleAnnotation
-import org.jetbrains.kotlin.asJava.classes.KtUltraLightSupport
-import org.jetbrains.kotlin.asJava.elements.KtLightAnnotationForSourceEntry
-import org.jetbrains.kotlin.asJava.elements.KtLightTypeParameter
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.idea.structuralsearch.visitor.KotlinRecursiveElementVisitor
-import org.jetbrains.kotlin.idea.util.addAnnotation
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
-import org.jetbrains.kotlin.idea.util.findAnnotation
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.psi.*
-import java.util.concurrent.Executor
+import org.jetbrains.kotlin.psi.KtClass
 
 class AddHiltAction : AnAction() {
 
@@ -67,7 +52,7 @@ class AddHiltAction : AnAction() {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
                 androidBaseBuildModels.forEach {
-                    if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android:")) {
+                    if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android")) {
                         it.dependencies().addArtifact(
                             "implementation",
                             "com.google.dagger:hilt-android:2.39.1"
@@ -76,7 +61,7 @@ class AddHiltAction : AnAction() {
                         it.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
                     }
                 }
-                // todo: do this ONLY IF THE DEPENDENCY DOESN't EXIST
+                // todo: do this ONLY if a dependency/repository was added
                 projectGradleBuildModel?.applyChanges()
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
                 val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
@@ -156,7 +141,7 @@ class AddHiltAction : AnAction() {
 
 
     private fun ArtifactDependencyModel.getGroupName(): String {
-        return group().toString() + ":" + name().toString() + ":"
+        return group().toString() + ":" + name().toString()
     }
 
     private fun AndroidManifestXmlFile.findApplicationName(): String? {
