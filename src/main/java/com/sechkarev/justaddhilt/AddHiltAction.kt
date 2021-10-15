@@ -16,22 +16,25 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
-import com.intellij.psi.XmlRecursiveElementVisitor
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.util.ClassUtil
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.refactoring.suggested.startOffset
+import freemarker.template.Configuration
+import freemarker.template.Template
+import freemarker.template.TemplateExceptionHandler
+import freemarker.template.Version
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
+import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.psi.KtClass
+import java.io.StringWriter
 
 class AddHiltAction : AnAction() {
 
@@ -154,5 +157,30 @@ class AddHiltAction : AnAction() {
             }
         })
         return result
+    }
+
+    private val freeMarkerConfig by lazy {
+        Configuration(Version(1)).apply {
+            setClassForTemplateLoading(this@AddHiltAction::class.java, "/resources")
+            defaultEncoding = Charsets.UTF_8.name()
+            templateExceptionHandler = TemplateExceptionHandler.RETHROW_HANDLER // todo: try without
+        }
+    }
+
+    private fun generateApplicationFile(project: Project, packageName: String): PsiFile {
+        val generationParameters = mapOf<String, Any>(
+            "packageName" to packageName
+        )
+        val template = freeMarkerConfig.getTemplate("appFileTemplate.kt.ftl")
+
+        val templateText = StringWriter().use { writer ->
+            template.process(generationParameters, writer)
+            writer.buffer.toString()
+        }
+        return PsiFileFactory.getInstance(project).createFileFromText(
+            "Application.kt", // todo: what if it already exists?
+            KotlinLanguage.INSTANCE,
+            templateText,
+        )
     }
 }

@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.freemarker:freemarker:2.3.31")
     implementation(kotlin("stdlib"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
