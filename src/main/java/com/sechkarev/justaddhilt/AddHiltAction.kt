@@ -7,6 +7,7 @@ import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyMode
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
+import com.android.tools.idea.lint.common.getModuleDir
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
 import com.intellij.lang.java.JavaLanguage
@@ -24,14 +25,13 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.refactoring.suggested.startOffset
 import freemarker.template.Configuration
-import freemarker.template.Template
 import freemarker.template.TemplateExceptionHandler
 import freemarker.template.Version
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
-import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.idea.core.util.toVirtualFile
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.psi.KtClass
 import java.io.StringWriter
@@ -84,8 +84,23 @@ class AddHiltAction : AnAction() {
             runWriteAction {
                 androidFacets.forEach { androidFacet ->
                     val primaryManifestXml = androidFacet.getPrimaryManifestXml()
-                    val applicationName = primaryManifestXml?.findApplicationName()
                     val packageName = primaryManifestXml?.packageName
+                    val applicationName = primaryManifestXml?.findApplicationName()
+                    if (applicationName == null && packageName != null) {
+                        val newApplicationName = "GeneratedApplication" // todo: customize name (and package?)
+                        generateApplicationFile(project, packageName, newApplicationName).also {
+                            logger.warn("Application Psi File generated, length = ${it.textLength}")
+                            // fixme: file doesn't get added!
+                            val moduleDir = androidFacet.module.getModuleDir()?.toVirtualFile() ?: return@also
+                            PsiManager.getInstance(project).findDirectory(moduleDir)
+                                ?.findSubdirectory("src")
+                                ?.findSubdirectory("main")
+                                ?.findSubdirectory("java")
+                                ?.add(it) //todo: should add to package equal to packageName instead of root dir
+                        }
+                        primaryManifestXml.setApplicationName(".$newApplicationName")
+                        return@forEach
+                    }
                     val fullClassName = packageName + applicationName
                     val applicationPsiClass = ClassUtil.findPsiClass(PsiManager.getInstance(project), fullClassName) ?: run {
                         logger.warn("No class found by name: $fullClassName")
@@ -159,17 +174,28 @@ class AddHiltAction : AnAction() {
         return result
     }
 
+    private fun AndroidManifestXmlFile.setApplicationName(name: String) {
+        accept(object : XmlRecursiveElementVisitor() {
+            override fun visitXmlTag(tag: XmlTag?) {
+                super.visitXmlTag(tag)
+                if ("application" != tag?.name) return
+                tag.setAttribute("android:name", name)
+            }
+        })
+    }
+
     private val freeMarkerConfig by lazy {
-        Configuration(Version(1)).apply {
-            setClassForTemplateLoading(this@AddHiltAction::class.java, "/resources")
+        Configuration(Version(Version.intValueFor(2, 3, 31))).apply {
+            setClassForTemplateLoading(this@AddHiltAction::class.java, "/templates")
             defaultEncoding = Charsets.UTF_8.name()
             templateExceptionHandler = TemplateExceptionHandler.RETHROW_HANDLER // todo: try without
         }
     }
 
-    private fun generateApplicationFile(project: Project, packageName: String): PsiFile {
+    private fun generateApplicationFile(project: Project, packageName: String, applicationName: String): PsiFile {
         val generationParameters = mapOf<String, Any>(
-            "packageName" to packageName
+            "packageName" to packageName,
+            "applicationName" to applicationName,
         )
         val template = freeMarkerConfig.getTemplate("appFileTemplate.kt.ftl")
 
@@ -179,7 +205,7 @@ class AddHiltAction : AnAction() {
         }
         return PsiFileFactory.getInstance(project).createFileFromText(
             "Application.kt", // todo: what if it already exists?
-            KotlinLanguage.INSTANCE,
+            KotlinLanguage.INSTANCE, // todo: what if the user doesn't have kotlin plugin enabled?
             templateText,
         )
     }
