@@ -7,7 +7,6 @@ import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyMode
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
-import com.android.tools.idea.lint.common.getModuleDir
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
 import com.intellij.lang.java.JavaLanguage
@@ -17,6 +16,7 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessModuleDir
 import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
@@ -31,7 +31,6 @@ import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.idea.core.util.toVirtualFile
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.psi.KtClass
 import java.io.StringWriter
@@ -88,15 +87,19 @@ class AddHiltAction : AnAction() {
                     val applicationName = primaryManifestXml?.findApplicationName()
                     if (applicationName == null && packageName != null) {
                         val newApplicationName = "GeneratedApplication" // todo: customize name (and package?)
-                        generateApplicationFile(project, packageName, newApplicationName).also {
-                            logger.warn("Application Psi File generated, length = ${it.textLength}")
-                            // fixme: file doesn't get added!
-                            val moduleDir = androidFacet.module.getModuleDir()?.toVirtualFile() ?: return@also
-                            PsiManager.getInstance(project).findDirectory(moduleDir)
+                        generateApplicationFile(project, packageName, newApplicationName).also { applicationFile ->
+                            logger.warn("Application Psi File generated, length = ${applicationFile.textLength}")
+                            val moduleDir = androidFacet.module.guessModuleDir() ?: return@also
+                            val rootDir = PsiManager.getInstance(project).findDirectory(moduleDir)
+                                ?.also { logger.warn("Module dir found, name = ${it.name}") }
                                 ?.findSubdirectory("src")
                                 ?.findSubdirectory("main")
-                                ?.findSubdirectory("java")
-                                ?.add(it) //todo: should add to package equal to packageName instead of root dir
+                                ?.findSubdirectory("java") // todo: kotlin?
+                            var dirToAddAppFile = rootDir
+                            packageName.split('.').forEach {
+                                dirToAddAppFile = dirToAddAppFile?.findSubdirectory(it)
+                            }
+                            dirToAddAppFile?.add(applicationFile)
                         }
                         primaryManifestXml.setApplicationName(".$newApplicationName")
                         return@forEach
