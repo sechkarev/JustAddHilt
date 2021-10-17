@@ -46,7 +46,7 @@ class AddHiltAction : AnAction() {
         val projectGradleBuildModel = projectBuildModel.projectBuildModel // todo: what does this mean if this is null?
         val classpathDependencies = projectGradleBuildModel?.buildscript()?.dependencies()?.artifacts("classpath")
         logger.warn("Classpath dependencies = ${classpathDependencies?.joinToString { it.getGroupName() }}")
-        val kotlinEnabledInProject = classpathDependencies?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" }
+        val kotlinEnabledInProject = classpathDependencies?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" } ?: false
         logger.warn("Kotlin plugin enabled in project = $kotlinEnabledInProject")
         val androidBaseBuildModels = projectBuildModel.allIncludedBuildModels.filter { moduleBuildModel ->
             moduleBuildModel.plugins().any { plugin ->
@@ -56,13 +56,13 @@ class AddHiltAction : AnAction() {
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
         executeCommand {
             runWriteAction {
-                projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
+                projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME) // fixme: allprojects!
                 androidBaseBuildModels.forEach {
                     if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android")) {
                         it.dependencies().addArtifact(
                             "implementation",
                             "com.google.dagger:hilt-android:2.39.1"
-                        ) // todo: scrap(?) the fresh version
+                        ) // todo: scrap(?) the fresh version (github releases?)
                         it.applyChanges()
                         it.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
                     }
@@ -72,7 +72,7 @@ class AddHiltAction : AnAction() {
                 projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
                 val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
                 listenableFuture.addListener(
-                    { addAnnotationToApplicationClasses(project, androidBaseBuildModels) },
+                    { addAnnotationToApplicationClasses(project, androidBaseBuildModels, kotlinEnabledInProject) },
                     { DumbService.getInstance(project).smartInvokeLater(it) },
                 )
             }
@@ -80,7 +80,7 @@ class AddHiltAction : AnAction() {
 
     }
 
-    private fun addAnnotationToApplicationClasses(project: Project, androidBaseBuildModels: List<GradleBuildModel>) {
+    private fun addAnnotationToApplicationClasses(project: Project, androidBaseBuildModels: List<GradleBuildModel>, kotlinEnabledInProject: Boolean) {
         val androidFacets = androidBaseBuildModels.mapNotNull { it.psiElement?.let { psiElement -> AndroidFacet.getInstance(psiElement) } }
         logger.warn("androidFacets: " + androidFacets.joinToString { it.module.name })
         executeCommand {
@@ -91,14 +91,14 @@ class AddHiltAction : AnAction() {
                     val applicationName = primaryManifestXml?.findApplicationName()
                     if (applicationName == null && packageName != null) {
                         val newApplicationName = "GeneratedApplication" // todo: customize name (and package?)
-                        generateApplicationFile(project, packageName, newApplicationName).also { applicationFile ->
+                        generateApplicationFile(project, packageName, newApplicationName, kotlinEnabledInProject).also { applicationFile ->
                             logger.warn("Application Psi File generated, length = ${applicationFile.textLength}")
                             val moduleDir = androidFacet.module.guessModuleDir() ?: return@also
                             val rootDir = PsiManager.getInstance(project).findDirectory(moduleDir)
                                 ?.also { logger.warn("Module dir found, name = ${it.name}") }
                                 ?.findSubdirectory("src")
                                 ?.findSubdirectory("main")
-                                ?.findSubdirectory("java") // todo: kotlin?
+                                ?.let { it.findSubdirectory("kotlin") ?: it.findSubdirectory("java") }
                             var dirToAddAppFile = rootDir
                             packageName.split('.').forEach {
                                 dirToAddAppFile = dirToAddAppFile?.findSubdirectory(it)
@@ -194,21 +194,38 @@ class AddHiltAction : AnAction() {
         }
     }
 
-    private fun generateApplicationFile(project: Project, packageName: String, applicationName: String): PsiFile {
+    private fun generateApplicationFile(
+        project: Project,
+        packageName: String,
+        applicationName: String,
+        kotlinEnabledInProject: Boolean,
+    ): PsiFile {
         val generationParameters = mapOf<String, Any>(
             "packageName" to packageName,
             "applicationName" to applicationName,
         )
-        val template = freeMarkerConfig.getTemplate("appFileTemplate.kt.ftl")
-
-        val templateText = StringWriter().use { writer ->
-            template.process(generationParameters, writer)
-            writer.buffer.toString()
+        if (kotlinEnabledInProject) {
+            val template = freeMarkerConfig.getTemplate("appFileTemplate.kt.ftl")
+            val templateText = StringWriter().use { writer ->
+                template.process(generationParameters, writer)
+                writer.buffer.toString()
+            }
+            return PsiFileFactory.getInstance(project).createFileFromText(
+                "GeneratedApplication.kt", // todo: what if it already exists?
+                KotlinLanguage.INSTANCE,
+                templateText,
+            )
+        } else {
+            val template = freeMarkerConfig.getTemplate("appFileTemplate.java.ftl")
+            val templateText = StringWriter().use { writer ->
+                template.process(generationParameters, writer)
+                writer.buffer.toString()
+            }
+            return PsiFileFactory.getInstance(project).createFileFromText(
+                "GeneratedApplication.java", // todo: what if it already exists?
+                JavaLanguage.INSTANCE,
+                templateText,
+            )
         }
-        return PsiFileFactory.getInstance(project).createFileFromText(
-            "Application.kt", // todo: what if it already exists?
-            KotlinLanguage.INSTANCE, // todo: what if the user doesn't have kotlin plugin enabled?
-            templateText,
-        )
     }
 }
