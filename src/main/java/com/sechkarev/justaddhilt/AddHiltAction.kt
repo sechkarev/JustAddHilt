@@ -54,6 +54,7 @@ class AddHiltAction : AnAction() {
                 plugin.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("com.android.application") == true
             }
         }
+        // todo: show error if this list is empty
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
         executeCommand {
             runWriteAction {
@@ -91,7 +92,8 @@ class AddHiltAction : AnAction() {
                 }
                 // todo: do this ONLY if a dependency/repository was added
                 projectGradleBuildModel?.applyChanges()
-                projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) } // todo: reformat only the changes?.. the entire file might be overkill
+                projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                // todo: reformat only the changes?.. the entire file might be overkill
                 val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
                 listenableFuture.addListener(
                     { addAnnotationToApplicationClasses(project, androidBaseBuildModels, kotlinEnabledInProject) },
