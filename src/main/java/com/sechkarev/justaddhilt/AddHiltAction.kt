@@ -57,7 +57,8 @@ class AddHiltAction : AnAction() {
         executeCommand {
             runWriteAction {
                 projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-                // fixme: allprojects! also, the settings file isn't taken into account (
+                // fixme: when there is no allprojects block, it is not created!
+                // todo: also, the settings file isn't taken into account (
                 //  dependencyResolutionManagement {
                 //    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
                 //    ...
@@ -122,6 +123,7 @@ class AddHiltAction : AnAction() {
                     val applicationClassHasHiltAnnotation = applicationPsiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
                     val hiltAnnotation = applicationPsiClass.annotations.firstOrNull { it.hasQualifiedName("dagger.hilt.android.HiltAndroidApp") }
                     logger.warn("Class ${applicationPsiClass.qualifiedName} written in ${applicationPsiClass.language} contains hilt annotation = ${hiltAnnotation != null}")
+                    // fixme: annotation is added twice if gradle sync fails.
                     if (hiltAnnotation == null) {
                         if (applicationPsiClass.language is JavaLanguage) {
                             val addedAnnotation =
