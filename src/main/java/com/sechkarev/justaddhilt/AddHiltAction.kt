@@ -2,6 +2,7 @@ package com.sechkarev.justaddhilt
 
 import com.android.SdkConstants
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
+import com.android.tools.idea.gradle.dsl.api.PluginModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
@@ -43,7 +44,7 @@ class AddHiltAction : AnAction() {
         val project = e.project ?: return
 
         val projectBuildModel = ProjectBuildModel.get(project)
-        val projectGradleBuildModel = projectBuildModel.projectBuildModel // todo: what does this mean if this is null?
+        val projectGradleBuildModel = projectBuildModel.projectBuildModel
         val classpathDependencies = projectGradleBuildModel?.buildscript()?.dependencies()?.artifacts("classpath")
         logger.warn("Classpath dependencies = ${classpathDependencies?.joinToString { it.getGroupName() }}")
         val kotlinEnabledInProject = classpathDependencies?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" } ?: false
@@ -64,15 +65,29 @@ class AddHiltAction : AnAction() {
                 //    ...
                 //    }
                 // )
-                androidBaseBuildModels.forEach {
-                    if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android")) {
-                        it.dependencies().addArtifact(
-                            "implementation",
-                            "com.google.dagger:hilt-android:2.39.1"
-                        ) // todo: scrap(?) the fresh version (github releases?)
-                        it.applyChanges()
-                        it.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
+                androidBaseBuildModels.forEach { moduleBuildModel ->
+                    val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
+                    val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
+                    val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }
+                    if (!hiltPluginEnabled) {
+                        moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
                     }
+                    val version = "2.39.1" // todo: scrap(?) the fresh version (github releases?)
+                    if (!isDependencyExist(moduleBuildModel.dependencies(), "com.google.dagger:hilt-android")) {
+                        moduleBuildModel.dependencies().addArtifact(
+                            "implementation",
+                            "com.google.dagger:hilt-android:$version"
+                        )
+                    }
+                    if (!isDependencyExist(moduleBuildModel.dependencies(), "com.google.dagger:hilt-compiler")) {
+                        moduleBuildModel.dependencies().addArtifact(
+                            if (kaptPluginEnabled) "kapt" else "annotationProcessor",
+                            "com.google.dagger:hilt-compiler:$version"
+                        )
+                    }
+                    // todo: add test dependencies
+                    moduleBuildModel.applyChanges()
+                    moduleBuildModel.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
                 }
                 // todo: do this ONLY if a dependency/repository was added
                 projectGradleBuildModel?.applyChanges()
