@@ -56,7 +56,13 @@ class AddHiltAction : AnAction() {
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
         executeCommand {
             runWriteAction {
-                projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME) // fixme: allprojects!
+                projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
+                // fixme: allprojects! also, the settings file isn't taken into account (
+                //  dependencyResolutionManagement {
+                //    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                //    ...
+                //    }
+                // )
                 androidBaseBuildModels.forEach {
                     if (!isDependencyExist(it.dependencies(), "com.google.dagger:hilt-android")) {
                         it.dependencies().addArtifact(
@@ -138,7 +144,6 @@ class AddHiltAction : AnAction() {
                 }
             }
         }
-        // todo: next step: generate App class with Free Marker
     }
 
     private fun checkMavenCentral(projectBuildModel: GradleBuildModel?) {
