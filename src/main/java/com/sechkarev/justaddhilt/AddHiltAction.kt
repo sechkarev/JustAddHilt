@@ -44,6 +44,10 @@ class AddHiltAction : AnAction() {
 
         val projectBuildModel = ProjectBuildModel.get(project)
         val projectGradleBuildModel = projectBuildModel.projectBuildModel // todo: what does this mean if this is null?
+        val classpathDependencies = projectGradleBuildModel?.buildscript()?.dependencies()?.artifacts("classpath")
+        logger.warn("Classpath dependencies = ${classpathDependencies?.joinToString { it.getGroupName() }}")
+        val kotlinEnabledInProject = classpathDependencies?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" }
+        logger.warn("Kotlin plugin enabled in project = $kotlinEnabledInProject")
         val androidBaseBuildModels = projectBuildModel.allIncludedBuildModels.filter { moduleBuildModel ->
             moduleBuildModel.plugins().any { plugin ->
                 plugin.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("com.android.application") == true
@@ -152,14 +156,9 @@ class AddHiltAction : AnAction() {
             .all()
             .any { dependencyModel ->
                 dependencyModel is ArtifactDependencyModel
-                        && dependencyModel.isEqualName(dependencyName)
+                        && dependencyModel.getGroupName() == dependencyName
             }
     }
-
-
-    private fun ArtifactDependencyModel.isEqualName(dependencyName: String) =
-        getGroupName() == dependencyName
-
 
     private fun ArtifactDependencyModel.getGroupName(): String {
         return group().toString() + ":" + name().toString()
