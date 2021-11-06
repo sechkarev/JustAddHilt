@@ -13,7 +13,7 @@ import com.sechkarev.justaddhilt.usecase.hilt.annotation.AddHiltAnnotationToPsiC
 import com.sechkarev.justaddhilt.usecase.hilt.dependency.AddHiltDependenciesToAndroidModules
 import com.sechkarev.justaddhilt.usecase.project.IsKotlinEnabledInProject
 import com.sechkarev.justaddhilt.usecase.project.application.AddApplicationClassToModule
-import com.sechkarev.justaddhilt.usecase.project.application.ApplicationClassExistsInModule
+import com.sechkarev.justaddhilt.usecase.project.application.IsApplicationClassPresentInModule
 import com.sechkarev.justaddhilt.usecase.project.application.GetModuleApplicationClass
 import com.sechkarev.justaddhilt.usecase.project.build.GetApplicationBuildModels
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModels
@@ -65,7 +65,7 @@ class AddHiltAction : AnAction() {
         executeCommand {
             runWriteAction {
                 modulesWithAndroidFacet().forEach { module ->
-                    val applicationFileExistsInModule = module.getService(ApplicationClassExistsInModule::class.java)
+                    val applicationFileExistsInModule = module.getService(IsApplicationClassPresentInModule::class.java)
                     if (!applicationFileExistsInModule()) {
                         val newFileName = "GeneratedApplication" // todo: what if it already exists?
                         val addApplicationFileToModule = module.getService(AddApplicationClassToModule::class.java)
