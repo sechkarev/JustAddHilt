@@ -15,14 +15,14 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
+        <notificationGroup id="Just Add Hilt Notification Group" displayType="BALLOON"/>
     </extensions>
 
     <actions>
         <action id="com.sechkarev.justaddhilt.action.AddHiltAction"
                 class="com.sechkarev.justaddhilt.action.AddHiltAction"
                 text="Add Hilt to the Project"
-                description="Opens a window that allows the user to add Hilt library to the current Android project">
+                description="Add Hilt library to all Android modules of the current project">
             <!-- todo: add icon -->
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>

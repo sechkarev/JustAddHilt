@@ -7,7 +7,6 @@ import com.intellij.psi.PsiFileFactory
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import java.io.StringWriter
 
-// todo: unite?
 @Service
 class GenerateKotlinApplicationFile(private val project: Project) {
 
