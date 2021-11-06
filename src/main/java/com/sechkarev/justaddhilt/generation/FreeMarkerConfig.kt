@@ -8,6 +8,6 @@ val freeMarkerConfig by lazy {
     Configuration(Version(Version.intValueFor(2, 3, 31))).apply {
         setClassForTemplateLoading(this.javaClass, "/templates")
         defaultEncoding = Charsets.UTF_8.name()
-        templateExceptionHandler = TemplateExceptionHandler.RETHROW_HANDLER // todo: try without
+        templateExceptionHandler = TemplateExceptionHandler.RETHROW_HANDLER
     }
 }
