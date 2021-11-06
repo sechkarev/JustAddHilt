@@ -42,8 +42,10 @@ class AddHiltAction : AnAction() {
     private val logger = logger<AddHiltAction>()
 
     override fun actionPerformed(e: AnActionEvent) {
-        val modulesWithAndroidFacet = e.project?.service<GetAllModulesWithAndroidFacet>()?.invoke().orEmpty()
-        logger.warn("modules With Android Facet: ${modulesWithAndroidFacet.joinToString { it.moduleRootDirectory.name }}")
+        val buildModelsWithAndroidFacet = e.project?.service<GetAllBuildModelsWithAndroidFacet>()?.invoke().orEmpty()
+        val buildModels = e.project?.service<GetAllBuildModels>()?.invoke().orEmpty()
+        logger.warn("build models: ${buildModels.joinToString { it.moduleRootDirectory.name }}")
+        logger.warn("build models With Android Facet: ${buildModelsWithAndroidFacet.joinToString { it.moduleRootDirectory.name }}")
 //        executeLogic(e)
     }
 
