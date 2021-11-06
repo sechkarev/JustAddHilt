@@ -6,12 +6,12 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.guessModuleDir
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiManager
-import com.sechkarev.justaddhilt.usecase.project.KotlinEnabledInProject
+import com.sechkarev.justaddhilt.usecase.project.IsKotlinEnabledInProject
 
 @Service
 class GenerateApplicationFile(private val module: Module) {
 
-    private val kotlinEnabledInProject = module.project.service<KotlinEnabledInProject>()
+    private val kotlinEnabledInProject = module.project.service<IsKotlinEnabledInProject>()
     private val generateKotlinApplicationFile = module.project.service<GenerateKotlinApplicationFile>()
     private val generateJavaApplicationFile = module.project.service<GenerateJavaApplicationFile>()
 

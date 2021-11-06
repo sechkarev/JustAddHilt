@@ -6,7 +6,7 @@ import com.intellij.openapi.project.Project
 import com.sechkarev.justaddhilt.getGroupName
 
 @Service
-class KotlinEnabledInProject(private val project: Project) {
+class IsKotlinEnabledInProject(private val project: Project) {
     operator fun invoke() = ProjectBuildModel
         .get(project)
         .projectBuildModel

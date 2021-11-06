@@ -20,39 +20,35 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
     private val getAllBuildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()
 
     operator fun invoke() {
-        executeCommand {
-            runWriteAction {
-                getAllBuildModelsWithAndroidFacet().forEach { moduleBuildModel ->
-                    val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
-                    val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
-                    val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }
-                    if (!hiltPluginEnabled) {
-                        moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
-                    }
-                    val hiltVersion = getHiltVersion()
-                    if (!isDependencyExist(moduleBuildModel.dependencies(), hiltImplementationDependencyName)) {
-                        moduleBuildModel.dependencies().addArtifact(
-                            "implementation",
-                            "$hiltImplementationDependencyName:$hiltVersion"
-                        )
-                    }
-                    if (!isDependencyExist(moduleBuildModel.dependencies(), hiltKaptDependencyName)) {
-                        moduleBuildModel.dependencies().addArtifact(
-                            if (kaptPluginEnabled) "kapt" else "annotationProcessor",
-                            "$hiltKaptDependencyName:$hiltVersion"
-                        )
-                    }
-                    // todo: add test dependencies (do we even need to?)
-                    moduleBuildModel.applyChanges()
-                    moduleBuildModel.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
-                }
+        getAllBuildModelsWithAndroidFacet().forEach { moduleBuildModel ->
+            val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
+            val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
+            val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }
+            if (!hiltPluginEnabled) {
+                moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
             }
+            val hiltVersion = getHiltVersion()
+            if (!isDependencyExist(moduleBuildModel.dependencies(), hiltImplementationDependencyName)) {
+                moduleBuildModel.dependencies().addArtifact(
+                    "implementation",
+                    "$hiltImplementationDependencyName:$hiltVersion"
+                )
+            }
+            if (!isDependencyExist(moduleBuildModel.dependencies(), hiltKaptDependencyName)) {
+                moduleBuildModel.dependencies().addArtifact(
+                    if (kaptPluginEnabled) "kapt" else "annotationProcessor",
+                    "$hiltKaptDependencyName:$hiltVersion"
+                )
+            }
+            // todo: add test dependencies (do we even need to?)
+            moduleBuildModel.applyChanges()
+            moduleBuildModel.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
         }
     }
 
     private fun isDependencyExist(dependenciesModel: DependenciesModel, dependencyName: String) = dependenciesModel
-            .all()
-            .any { it is ArtifactDependencyModel && it.getGroupName() == dependencyName }
+        .all()
+        .any { it is ArtifactDependencyModel && it.getGroupName() == dependencyName }
 
     private companion object {
         const val hiltImplementationDependencyName = "com.google.dagger:hilt-android"

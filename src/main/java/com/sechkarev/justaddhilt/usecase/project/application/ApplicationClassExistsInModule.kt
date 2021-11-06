@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt.usecase.generation
+package com.sechkarev.justaddhilt.usecase.project.application
 
 import com.android.tools.idea.util.androidFacet
 import com.intellij.openapi.components.Service
