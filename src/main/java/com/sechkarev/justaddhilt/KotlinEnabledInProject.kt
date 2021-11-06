@@ -1,0 +1,16 @@
+package com.sechkarev.justaddhilt
+
+import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.project.Project
+
+@Service
+class KotlinEnabledInProject(private val project: Project) {
+    operator fun invoke() = ProjectBuildModel
+        .get(project)
+        .projectBuildModel
+        ?.buildscript()
+        ?.dependencies()
+        ?.artifacts("classpath")
+        ?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" } ?: false
+}

@@ -42,75 +42,30 @@ class AddHiltAction : AnAction() {
     private val logger = logger<AddHiltAction>()
 
     override fun actionPerformed(e: AnActionEvent) {
-        val buildModelsWithAndroidFacet = e.project?.service<GetAllBuildModelsWithAndroidFacet>()?.invoke().orEmpty()
-        val buildModels = e.project?.service<GetAllBuildModels>()?.invoke().orEmpty()
+        val project = e.project ?: return // todo: show error
+
+        val buildModelsWithAndroidFacet = project.service<GetAllBuildModelsWithAndroidFacet>()()
+        val buildModels = project.service<GetAllBuildModels>()()
+        project.service<EnsureMavenCentralRepoPresent>()()
         logger.warn("build models: ${buildModels.joinToString { it.moduleRootDirectory.name }}")
         logger.warn("build models With Android Facet: ${buildModelsWithAndroidFacet.joinToString { it.moduleRootDirectory.name }}")
-//        executeLogic(e)
+        // todo: show error if this list is empty
+        executeLogic(e)
     }
 
     private fun executeLogic(e: AnActionEvent) {
         val project = e.project ?: return
 
-        val projectBuildModel = ProjectBuildModel.get(project)
-        val projectGradleBuildModel = projectBuildModel.projectBuildModel
-        val classpathDependencies = projectGradleBuildModel?.buildscript()?.dependencies()?.artifacts("classpath")
-        logger.warn("Classpath dependencies = ${classpathDependencies?.joinToString { it.getGroupName() }}")
-        val kotlinEnabledInProject = classpathDependencies?.any { it.getGroupName() == "org.jetbrains.kotlin:kotlin-gradle-plugin" } ?: false
+        val kotlinEnabledInProject = project.service<KotlinEnabledInProject>()()
         logger.warn("Kotlin plugin enabled in project = $kotlinEnabledInProject")
-        val androidBaseBuildModels = projectBuildModel.allIncludedBuildModels.filter { moduleBuildModel ->
-            moduleBuildModel.plugins().any { plugin ->
-                plugin.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("com.android.application") == true
-            }
-        }
-        // todo: show error if this list is empty
+        val androidBaseBuildModels = project.service<GetAllApplicationBuildModels>()()
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
-        executeCommand {
-            runWriteAction {
-                projectGradleBuildModel?.repositories()?.addRepositoryByMethodName(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-                // fixme: when there is no allprojects block, it is not created!
-                // todo: also, the settings file isn't taken into account (
-                //  dependencyResolutionManagement {
-                //    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-                //    ...
-                //    }
-                // )
-                androidBaseBuildModels.forEach { moduleBuildModel ->
-                    val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
-                    val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
-                    val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }
-                    if (!hiltPluginEnabled) {
-                        moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
-                    }
-                    val version = "2.39.1" // todo: scrap(?) the fresh version (github releases?)
-                    // https://docs.github.com/en/rest/reference/repos#releases
-                    if (!isDependencyExist(moduleBuildModel.dependencies(), "com.google.dagger:hilt-android")) {
-                        moduleBuildModel.dependencies().addArtifact(
-                            "implementation",
-                            "com.google.dagger:hilt-android:$version"
-                        )
-                    }
-                    if (!isDependencyExist(moduleBuildModel.dependencies(), "com.google.dagger:hilt-compiler")) {
-                        moduleBuildModel.dependencies().addArtifact(
-                            if (kaptPluginEnabled) "kapt" else "annotationProcessor",
-                            "com.google.dagger:hilt-compiler:$version"
-                        )
-                    }
-                    // todo: add test dependencies
-                    moduleBuildModel.applyChanges()
-                    moduleBuildModel.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
-                }
-                // todo: do this ONLY if a dependency/repository was added
-                projectGradleBuildModel?.applyChanges()
-                projectGradleBuildModel?.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
-                // todo: reformat only the changes?.. the entire file might be overkill
-                val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
-                listenableFuture.addListener(
-                    { addAnnotationToApplicationClasses(project, androidBaseBuildModels, kotlinEnabledInProject) },
-                    { DumbService.getInstance(project).smartInvokeLater(it) },
-                )
-            }
-        }
+        project.service<AddHiltDependenciesToAndroidModules>()()
+        val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
+        listenableFuture.addListener(
+            { addAnnotationToApplicationClasses(project, androidBaseBuildModels, kotlinEnabledInProject) },
+            { DumbService.getInstance(project).smartInvokeLater(it) },
+        )
     }
 
     private fun addAnnotationToApplicationClasses(project: Project, androidBaseBuildModels: List<GradleBuildModel>, kotlinEnabledInProject: Boolean) {
@@ -172,29 +127,6 @@ class AddHiltAction : AnAction() {
                 }
             }
         }
-    }
-
-    private fun checkMavenCentral(projectBuildModel: GradleBuildModel?) {
-        val mavenCentralPresent = projectBuildModel?.mavenCentralPresent()
-        val mavenCentralPresentString = "Maven Central is present in repos = $mavenCentralPresent"
-        logger.warn(mavenCentralPresentString)
-    }
-
-    private fun GradleBuildModel.mavenCentralPresent() = this
-        .repositories()
-        .containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-
-    private fun isDependencyExist(dependenciesModel: DependenciesModel, dependencyName: String): Boolean {
-        return dependenciesModel
-            .all()
-            .any { dependencyModel ->
-                dependencyModel is ArtifactDependencyModel
-                        && dependencyModel.getGroupName() == dependencyName
-            }
-    }
-
-    private fun ArtifactDependencyModel.getGroupName(): String {
-        return group().toString() + ":" + name().toString()
     }
 
     private fun AndroidManifestXmlFile.findApplicationName(): String? {
