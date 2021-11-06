@@ -14,6 +14,7 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -41,6 +42,12 @@ class AddHiltAction : AnAction() {
     private val logger = logger<AddHiltAction>()
 
     override fun actionPerformed(e: AnActionEvent) {
+        val modulesWithAndroidFacet = e.project?.service<GetAllModulesWithAndroidFacet>()?.invoke().orEmpty()
+        logger.warn("modules With Android Facet: ${modulesWithAndroidFacet.joinToString { it.moduleRootDirectory.name }}")
+//        executeLogic(e)
+    }
+
+    private fun executeLogic(e: AnActionEvent) {
         val project = e.project ?: return
 
         val projectBuildModel = ProjectBuildModel.get(project)
@@ -74,6 +81,7 @@ class AddHiltAction : AnAction() {
                         moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
                     }
                     val version = "2.39.1" // todo: scrap(?) the fresh version (github releases?)
+                    // https://docs.github.com/en/rest/reference/repos#releases
                     if (!isDependencyExist(moduleBuildModel.dependencies(), "com.google.dagger:hilt-android")) {
                         moduleBuildModel.dependencies().addArtifact(
                             "implementation",
@@ -101,7 +109,6 @@ class AddHiltAction : AnAction() {
                 )
             }
         }
-
     }
 
     private fun addAnnotationToApplicationClasses(project: Project, androidBaseBuildModels: List<GradleBuildModel>, kotlinEnabledInProject: Boolean) {
