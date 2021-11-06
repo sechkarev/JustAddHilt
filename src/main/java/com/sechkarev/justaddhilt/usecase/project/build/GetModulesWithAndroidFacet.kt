@@ -6,9 +6,13 @@ import com.intellij.openapi.project.Project
 import org.jetbrains.android.facet.AndroidFacet
 
 @Service
-class GetBuildModelsWithAndroidFacet(project: Project) {
+class GetModulesWithAndroidFacet(project: Project) {
 
     private val getBuildModels = project.service<GetBuildModels>()
 
     operator fun invoke() = getBuildModels()
-        .filter { buildModel -> buildModel.psiElement?.let { AndroidFacet.getInstance(it) } != null }}
+        .mapNotNull { it.psiElement }
+        .mapNotNull { AndroidFacet.getInstance(it) }
+        .map { it.module }
+
+}
