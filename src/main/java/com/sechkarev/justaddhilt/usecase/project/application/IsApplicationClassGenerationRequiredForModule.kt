@@ -7,7 +7,7 @@ import com.sechkarev.justaddhilt.usecase.project.manifest.GetApplicationNameFrom
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 
 @Service
-class IsApplicationClassPresentInModule(private val module: Module) {
+class IsApplicationClassGenerationRequiredForModule(private val module: Module) {
 
     private val getCurrentApplicationName = GetApplicationNameFromManifest(module)
 

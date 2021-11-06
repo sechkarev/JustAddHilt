@@ -4,6 +4,9 @@ import com.android.tools.idea.util.androidFacet
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.project.guessModuleDir
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiManager
 import com.intellij.psi.XmlRecursiveElementVisitor
 import com.intellij.psi.xml.XmlTag
 import com.sechkarev.justaddhilt.usecase.generation.GenerateApplicationFile
@@ -14,21 +17,27 @@ import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 @Service
 class AddApplicationClassToModule(private val module: Module) {
 
-    private val getCurrentApplicationName = GetApplicationNameFromManifest(module)
     private val generateApplicationFile = GenerateApplicationFile(module)
 
-    operator fun invoke(newApplicationFileName: String) {
-        val androidFacet = module.androidFacet ?: return
-        val primaryManifestXml = androidFacet.getPrimaryManifestXml()
-        val packageName = primaryManifestXml?.packageName
-        val currentApplicationName = getCurrentApplicationName()
-        if (currentApplicationName == null && packageName != null) {
-            generateApplicationFile(
-                packageName = packageName,
-                applicationName = newApplicationFileName
-            )
-            primaryManifestXml.setApplicationName(".$newApplicationFileName")
+    operator fun invoke(packageName: String, newApplicationFileName: String) {
+        val applicationFile = generateApplicationFile(
+            packageName = packageName,
+            applicationName = newApplicationFileName
+        )
+        getDirectoryForApplicationFile(packageName)?.add(applicationFile)
+        module.androidFacet?.getPrimaryManifestXml()?.setApplicationName(".$newApplicationFileName")
+    }
+
+    private fun getDirectoryForApplicationFile(packageName: String): PsiDirectory? {
+        val moduleDir = module.guessModuleDir() ?: return null
+        var result = PsiManager.getInstance(module.project).findDirectory(moduleDir)
+            ?.findSubdirectory("src")
+            ?.findSubdirectory("main")
+            ?.let { it.findSubdirectory("kotlin") ?: it.findSubdirectory("java") }
+        packageName.split('.').forEach {
+            result = result?.findSubdirectory(it)
         }
+        return result
     }
 
     private fun AndroidManifestXmlFile.setApplicationName(name: String) {

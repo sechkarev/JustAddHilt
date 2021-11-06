@@ -2,6 +2,7 @@ package com.sechkarev.justaddhilt.action
 
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
+import com.android.tools.idea.util.androidFacet
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
@@ -13,12 +14,12 @@ import com.sechkarev.justaddhilt.usecase.hilt.annotation.AddHiltAnnotationToPsiC
 import com.sechkarev.justaddhilt.usecase.hilt.dependency.AddHiltDependenciesToAndroidModules
 import com.sechkarev.justaddhilt.usecase.project.IsKotlinEnabledInProject
 import com.sechkarev.justaddhilt.usecase.project.application.AddApplicationClassToModule
-import com.sechkarev.justaddhilt.usecase.project.application.IsApplicationClassPresentInModule
+import com.sechkarev.justaddhilt.usecase.project.application.IsApplicationClassGenerationRequiredForModule
 import com.sechkarev.justaddhilt.usecase.project.application.GetModuleApplicationClass
-import com.sechkarev.justaddhilt.usecase.project.build.GetApplicationBuildModels
+import com.sechkarev.justaddhilt.usecase.project.build.GetAndroidFacetsOfApplicationModules
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModels
-import com.sechkarev.justaddhilt.usecase.project.build.GetModulesWithAndroidFacet
 import com.sechkarev.justaddhilt.usecase.project.repository.EnsureMavenCentralRepositoryPresent
+import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 class AddHiltAction : AnAction() {
@@ -40,11 +41,6 @@ class AddHiltAction : AnAction() {
         logger.warn("build models: ${buildModels.joinToString { it.moduleRootDirectory.name }}")
         // todo: show error if this list is empty
 
-        val kotlinEnabledInProject = project.service<IsKotlinEnabledInProject>()()
-        logger.warn("Kotlin plugin enabled in project = $kotlinEnabledInProject")
-        val androidBaseBuildModels = project.service<GetApplicationBuildModels>()()
-        logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
-
         executeCommand {
             runWriteAction {
                 project.service<AddHiltDependenciesToAndroidModules>()()
@@ -61,22 +57,27 @@ class AddHiltAction : AnAction() {
 
     private fun addAnnotationToApplicationClasses(project: Project) {
         // todo: show something if everything was already added
-        val modulesWithAndroidFacet = project.service<GetModulesWithAndroidFacet>()
+        val facetsOfApplicationModules = project.service<GetAndroidFacetsOfApplicationModules>()
         executeCommand {
             runWriteAction {
-                modulesWithAndroidFacet().forEach { module ->
-                    val applicationFileExistsInModule = IsApplicationClassPresentInModule(module)
-                    if (!applicationFileExistsInModule()) {
-                        val newFileName = "GeneratedApplication" // todo: what if it already exists?
-                        val addApplicationFileToModule = AddApplicationClassToModule(module)
-                        addApplicationFileToModule(newFileName)
-                    } else {
-                        val getModuleApplicationClass = GetModuleApplicationClass(module)
-                        val applicationPsiClass = getModuleApplicationClass() ?: return@forEach
-                        val addHiltAnnotationToPsiClass = project.service<AddHiltAnnotationToPsiClass>()
-                        addHiltAnnotationToPsiClass(applicationPsiClass)
+                facetsOfApplicationModules()
+                    .map { it.module }
+                    .forEach { module ->
+                        val packageDirectoryName = module.androidFacet?.getPrimaryManifestXml()?.packageName ?: return@forEach
+                        val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)
+                        if (shouldGenerateApplicationClass()) {
+                            logger.warn("generating app class for module ${module.name}")
+                            val newFileName = "GeneratedApplication" // todo: what if it already exists?
+                            val addApplicationFileToModule = AddApplicationClassToModule(module)
+                            addApplicationFileToModule(packageDirectoryName, newFileName)
+                        } else {
+                            logger.warn("adding annotation to app class in module ${module.name}")
+                            val getModuleApplicationClass = GetModuleApplicationClass(module)
+                            val applicationPsiClass = getModuleApplicationClass() ?: return@forEach
+                            val addHiltAnnotationToPsiClass = project.service<AddHiltAnnotationToPsiClass>()
+                            addHiltAnnotationToPsiClass(applicationPsiClass)
+                        }
                     }
-                }
             }
         }
     }
