@@ -1,13 +1,7 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.action
 
 import com.android.SdkConstants
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
-import com.android.tools.idea.gradle.dsl.api.PluginModel
-import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
-import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
-import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
-import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
-import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
 import com.intellij.lang.java.JavaLanguage
@@ -26,6 +20,12 @@ import com.intellij.psi.util.ClassUtil
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.refactoring.suggested.startOffset
+import com.sechkarev.justaddhilt.usecase.project.build.GetApplicationBuildModels
+import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModels
+import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
+import com.sechkarev.justaddhilt.usecase.hilt.dependency.AddHiltDependenciesToAndroidModules
+import com.sechkarev.justaddhilt.usecase.project.KotlinEnabledInProject
+import com.sechkarev.justaddhilt.usecase.project.repository.EnsureMavenCentralRepositoryPresent
 import freemarker.template.Configuration
 import freemarker.template.TemplateExceptionHandler
 import freemarker.template.Version
@@ -44,9 +44,9 @@ class AddHiltAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return // todo: show error
 
-        val buildModelsWithAndroidFacet = project.service<GetAllBuildModelsWithAndroidFacet>()()
-        val buildModels = project.service<GetAllBuildModels>()()
-        project.service<EnsureMavenCentralRepoPresent>()()
+        val buildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()()
+        val buildModels = project.service<GetBuildModels>()()
+        project.service<EnsureMavenCentralRepositoryPresent>()()
         logger.warn("build models: ${buildModels.joinToString { it.moduleRootDirectory.name }}")
         logger.warn("build models With Android Facet: ${buildModelsWithAndroidFacet.joinToString { it.moduleRootDirectory.name }}")
         // todo: show error if this list is empty
@@ -58,7 +58,7 @@ class AddHiltAction : AnAction() {
 
         val kotlinEnabledInProject = project.service<KotlinEnabledInProject>()()
         logger.warn("Kotlin plugin enabled in project = $kotlinEnabledInProject")
-        val androidBaseBuildModels = project.service<GetAllApplicationBuildModels>()()
+        val androidBaseBuildModels = project.service<GetApplicationBuildModels>()()
         logger.warn("androidBaseBuildModels: " + androidBaseBuildModels.joinToString { it.moduleRootDirectory.name })
         project.service<AddHiltDependenciesToAndroidModules>()()
         val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)

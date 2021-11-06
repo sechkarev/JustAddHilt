@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.usecase.hilt.version
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project

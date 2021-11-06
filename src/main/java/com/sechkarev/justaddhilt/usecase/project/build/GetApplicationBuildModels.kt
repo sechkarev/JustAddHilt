@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.usecase.project.build
 
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
 import com.intellij.openapi.components.Service
@@ -6,9 +6,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 
 @Service
-class GetAllApplicationBuildModels(private val project: Project) {
+class GetApplicationBuildModels(private val project: Project) {
 
-    private val getAllBuildModels = project.service<GetAllBuildModels>()
+    private val getAllBuildModels = project.service<GetBuildModels>()
 
     operator fun invoke() = getAllBuildModels()
         .filter { moduleBuildModel ->

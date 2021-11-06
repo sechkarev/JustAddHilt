@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.usecase.project.build
 
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
@@ -6,7 +6,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 
 @Service
-class GetAllBuildModels(private val project: Project) {
+class GetBuildModels(private val project: Project) {
     operator fun invoke(): List<GradleBuildModel> = ProjectBuildModel
         .get(project)
         .allIncludedBuildModels

@@ -1,8 +1,9 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.usecase.project
 
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.sechkarev.justaddhilt.getGroupName
 
 @Service
 class KotlinEnabledInProject(private val project: Project) {

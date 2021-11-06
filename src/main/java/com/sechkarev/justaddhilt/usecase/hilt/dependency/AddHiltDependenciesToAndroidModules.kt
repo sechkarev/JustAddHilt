@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt
+package com.sechkarev.justaddhilt.usecase.hilt.dependency
 
 import com.android.tools.idea.gradle.dsl.api.PluginModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
@@ -8,13 +8,16 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
+import com.sechkarev.justaddhilt.usecase.hilt.version.GetHiltVersion
+import com.sechkarev.justaddhilt.getGroupName
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 @Service
 class AddHiltDependenciesToAndroidModules(private val project: Project) {
 
     private val getHiltVersion = project.service<GetHiltVersion>()
-    private val getAllBuildModelsWithAndroidFacet = project.service<GetAllBuildModelsWithAndroidFacet>()
+    private val getAllBuildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()
 
     operator fun invoke() {
         executeCommand {

@@ -19,8 +19,8 @@
     </extensions>
 
     <actions>
-        <action id="com.sechkarev.justaddhilt.AddHiltAction"
-                class="com.sechkarev.justaddhilt.AddHiltAction"
+        <action id="com.sechkarev.justaddhilt.action.AddHiltAction"
+                class="com.sechkarev.justaddhilt.action.AddHiltAction"
                 text="Add Hilt to the Project"
                 description="Opens a window that allows the user to add Hilt library to the current Android project">
             <!-- todo: add icon -->
