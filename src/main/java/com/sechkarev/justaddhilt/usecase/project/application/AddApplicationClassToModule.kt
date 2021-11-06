@@ -14,8 +14,8 @@ import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 @Service
 class AddApplicationClassToModule(private val module: Module) {
 
-    private val getCurrentApplicationName = module.getService(GetApplicationNameFromManifest::class.java)
-    private val generateApplicationFile = module.project.service<GenerateApplicationFile>()
+    private val getCurrentApplicationName = GetApplicationNameFromManifest(module)
+    private val generateApplicationFile = GenerateApplicationFile(module)
 
     operator fun invoke(newApplicationFileName: String) {
         val androidFacet = module.androidFacet ?: return

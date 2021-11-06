@@ -65,13 +65,13 @@ class AddHiltAction : AnAction() {
         executeCommand {
             runWriteAction {
                 modulesWithAndroidFacet().forEach { module ->
-                    val applicationFileExistsInModule = module.getService(IsApplicationClassPresentInModule::class.java)
+                    val applicationFileExistsInModule = IsApplicationClassPresentInModule(module)
                     if (!applicationFileExistsInModule()) {
                         val newFileName = "GeneratedApplication" // todo: what if it already exists?
-                        val addApplicationFileToModule = module.getService(AddApplicationClassToModule::class.java)
+                        val addApplicationFileToModule = AddApplicationClassToModule(module)
                         addApplicationFileToModule(newFileName)
                     } else {
-                        val getModuleApplicationClass = module.getService(GetModuleApplicationClass::class.java)
+                        val getModuleApplicationClass = GetModuleApplicationClass(module)
                         val applicationPsiClass = getModuleApplicationClass() ?: return@forEach
                         val addHiltAnnotationToPsiClass = project.service<AddHiltAnnotationToPsiClass>()
                         addHiltAnnotationToPsiClass(applicationPsiClass)

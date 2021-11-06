@@ -9,7 +9,7 @@ import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 @Service
 class IsApplicationClassPresentInModule(private val module: Module) {
 
-    private val getCurrentApplicationName = module.getService(GetApplicationNameFromManifest::class.java)
+    private val getCurrentApplicationName = GetApplicationNameFromManifest(module)
 
     operator fun invoke(): Boolean {
         val androidFacet = module.androidFacet ?: return false

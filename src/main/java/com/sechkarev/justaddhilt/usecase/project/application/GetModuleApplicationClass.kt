@@ -12,7 +12,7 @@ import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 @Service
 class GetModuleApplicationClass(private val module: Module) {
 
-    private val getApplicationNameFromManifest = module.getService(GetApplicationNameFromManifest::class.java)
+    private val getApplicationNameFromManifest = GetApplicationNameFromManifest(module)
 
     operator fun invoke(): PsiClass? {
         val primaryManifestXml = module.androidFacet?.getPrimaryManifestXml()
