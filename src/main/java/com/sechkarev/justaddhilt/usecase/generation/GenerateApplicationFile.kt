@@ -1,23 +1,30 @@
 package com.sechkarev.justaddhilt.usecase.generation
 
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
-import com.intellij.openapi.module.Module
-import com.sechkarev.justaddhilt.usecase.project.IsKotlinEnabledInProject
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
+import java.io.StringWriter
 
 @Service
-class GenerateApplicationFile(module: Module) {
+class GenerateApplicationFile(private val project: Project) {
 
-    private val kotlinEnabledInProject = module.project.service<IsKotlinEnabledInProject>()
-    private val generateKotlinApplicationFile = module.project.service<GenerateKotlinApplicationFile>()
-    private val generateJavaApplicationFile = module.project.service<GenerateJavaApplicationFile>()
-
-    operator fun invoke(
-        packageName: String,
-        applicationName: String,
-    ) = if (kotlinEnabledInProject()) {
-        generateKotlinApplicationFile(packageName, applicationName)
-    } else {
-        generateJavaApplicationFile(packageName, applicationName)
+    operator fun invoke(packageName: String, applicationFileProperties: ApplicationFileProperties): PsiFile {
+        val template = freeMarkerConfig.getTemplate(applicationFileProperties.language.templateName)
+        val templateText = StringWriter().use { writer ->
+            template.process(
+                mapOf(
+                    "packageName" to packageName,
+                    "applicationName" to applicationFileProperties.name,
+                ),
+                writer
+            )
+            writer.buffer.toString()
+        }
+        return PsiFileFactory.getInstance(project).createFileFromText(
+            "${applicationFileProperties.name}.${applicationFileProperties.language.extension}",
+            applicationFileProperties.language.language,
+            templateText,
+        )
     }
 }

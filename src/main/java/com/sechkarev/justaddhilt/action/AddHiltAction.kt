@@ -2,7 +2,6 @@ package com.sechkarev.justaddhilt.action
 
 import com.android.tools.idea.projectsystem.ProjectSystemSyncManager
 import com.android.tools.idea.projectsystem.gradle.GradleProjectSystemSyncManager
-import com.android.tools.idea.util.androidFacet
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
@@ -19,7 +18,6 @@ import com.sechkarev.justaddhilt.usecase.project.application.GetModuleApplicatio
 import com.sechkarev.justaddhilt.usecase.project.build.GetAndroidFacetsOfApplicationModules
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
 import com.sechkarev.justaddhilt.usecase.project.repository.EnsureMavenCentralRepositoryPresent
-import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 class AddHiltAction : AnAction() {
@@ -65,15 +63,10 @@ class AddHiltAction : AnAction() {
                 facetsOfApplicationModules()
                     .map { it.module }
                     .forEach { module ->
-                        val packageDirectoryName = module.androidFacet?.getPrimaryManifestXml()?.packageName ?: return@forEach
                         val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)
                         if (shouldGenerateApplicationClass()) {
-                            logger.warn("generating app class for module ${module.name}")
-                            val newFileName = "GeneratedApplication" // todo: what if it already exists?
-                            val addApplicationFileToModule = AddApplicationClassToModule(module)
-                            addApplicationFileToModule(packageDirectoryName, newFileName)
+                            AddApplicationClassToModule(module)()
                         } else {
-                            logger.warn("adding annotation to app class in module ${module.name}")
                             val getModuleApplicationClass = GetModuleApplicationClass(module)
                             val applicationPsiClass = getModuleApplicationClass() ?: return@forEach
                             val addHiltAnnotationToPsiClass = project.service<AddHiltAnnotationToPsiClass>()

@@ -23,7 +23,7 @@ class EnsureMavenCentralRepositoryPresent(private val project: Project) {
                 psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
             }
         return true
-        // fixme: when there is no allprojects { ... } block, it is not created!
+        // fixme: when there is no allprojects { ... } block, it is not created! (Can be fixed by adding repositories block to module's build.gradle)
         // todo: also, the settings file isn't taken into account. if this is present, addition fails (
         //  dependencyResolutionManagement {
         //    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
