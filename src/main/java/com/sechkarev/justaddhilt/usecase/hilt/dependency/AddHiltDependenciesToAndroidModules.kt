@@ -3,9 +3,13 @@ package com.sechkarev.justaddhilt.usecase.hilt.dependency
 import com.android.tools.idea.gradle.dsl.api.PluginModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
+import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
+import com.android.tools.idea.gradle.dsl.api.repositories.RepositoriesModel
+import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
@@ -19,9 +23,12 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
     private val getHiltVersion = project.service<GetHiltVersion>()
     private val getAllBuildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()
 
-    operator fun invoke(): Boolean {
+    operator fun invoke(logger: Logger): Boolean {
         var result = false
         getAllBuildModelsWithAndroidFacet().forEach { moduleBuildModel ->
+            val repositories = moduleBuildModel.repositories()
+            val mavenCentralPresent = repositories.containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
+            logger.warn("maven central present in module = $mavenCentralPresent, repositories = ${repositories.repositories().joinToString { it.name().getValue(GradlePropertyModel.STRING_TYPE) ?: "" }}")
             val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
             val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
             val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }

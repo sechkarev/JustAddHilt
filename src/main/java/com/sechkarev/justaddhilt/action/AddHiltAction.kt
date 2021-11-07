@@ -17,7 +17,6 @@ import com.sechkarev.justaddhilt.usecase.project.application.IsApplicationClassG
 import com.sechkarev.justaddhilt.usecase.project.application.GetModuleApplicationClass
 import com.sechkarev.justaddhilt.usecase.project.build.GetAndroidFacetsOfApplicationModules
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
-import com.sechkarev.justaddhilt.usecase.project.repository.EnsureMavenCentralRepositoryPresent
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 class AddHiltAction : AnAction() {
@@ -27,15 +26,6 @@ class AddHiltAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
 
-        var mavenRepositoryWasAdded = false
-        var dependenciesWereAdded = false
-
-        executeCommand {
-            runWriteAction {
-                mavenRepositoryWasAdded = project.service<EnsureMavenCentralRepositoryPresent>()()
-            }
-        }
-
         val buildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()()
         if (buildModelsWithAndroidFacet.isEmpty()) {
             project.service<ShowBalloonNotification>()(
@@ -43,14 +33,14 @@ class AddHiltAction : AnAction() {
             ) // todo: figure out how localization works here
         }
 
+        var dependenciesWereAdded = false
         executeCommand {
             runWriteAction {
-                dependenciesWereAdded = project.service<AddHiltDependenciesToAndroidModules>()()
+                dependenciesWereAdded = project.service<AddHiltDependenciesToAndroidModules>()(logger)
             }
         }
 
-        logger.warn("maven repository was added = $mavenRepositoryWasAdded, dependencies were added = $dependenciesWereAdded")
-        if (mavenRepositoryWasAdded || dependenciesWereAdded) {
+        if (dependenciesWereAdded) {
             syncProjectWithGradleFiles(
                 project,
                 this::addHiltAnnotationToApplicationClasses,
