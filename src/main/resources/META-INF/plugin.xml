@@ -23,7 +23,6 @@
                 class="com.sechkarev.justaddhilt.action.AddHiltAction"
                 text="Add Hilt to the Project"
                 description="Add Hilt library to all Android modules of the current project">
-            <!-- todo: add icon -->
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
     </actions>

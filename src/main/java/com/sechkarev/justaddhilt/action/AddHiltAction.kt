@@ -76,11 +76,12 @@ class AddHiltAction : AnAction() {
         var codeWasAdded = false
         executeCommand {
             runWriteAction {
-                project.service<GetAndroidFacetsOfApplicationModules>()()
+                project
+                    .service<GetAndroidFacetsOfApplicationModules>()()
                     .map { it.module }
                     .forEach { module ->
-                        val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)
-                        if (shouldGenerateApplicationClass()) {
+                        val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)()
+                        if (shouldGenerateApplicationClass) {
                             val appClassWasGenerated = AddApplicationClassToModule(module)()
                             codeWasAdded = codeWasAdded || appClassWasGenerated
                             logger.warn("app class was generated = $appClassWasGenerated for module = ${module.name}")
@@ -102,6 +103,6 @@ class AddHiltAction : AnAction() {
         }
     }
 }
+// todo: finish use case extraction
 
-// todo: it's not easy to distinguish between service variables and their results
 // todo: booleans look a little ugly
