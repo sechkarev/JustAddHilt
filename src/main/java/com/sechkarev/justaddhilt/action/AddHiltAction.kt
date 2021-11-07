@@ -27,7 +27,8 @@ class AddHiltAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
 
-        var mavenRepositoryWasAdded: Boolean
+        var mavenRepositoryWasAdded = false
+        var dependenciesWereAdded = false
 
         executeCommand {
             runWriteAction {
@@ -44,38 +45,63 @@ class AddHiltAction : AnAction() {
 
         executeCommand {
             runWriteAction {
-                project.service<AddHiltDependenciesToAndroidModules>()()
+                dependenciesWereAdded = project.service<AddHiltDependenciesToAndroidModules>()()
             }
         }
 
-        //todo: refresh gradle only if repos/dependencies were added
-        val listenableFuture = GradleProjectSystemSyncManager(project).syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
+        logger.warn("maven repository was added = $mavenRepositoryWasAdded, dependencies were added = $dependenciesWereAdded")
+        if (mavenRepositoryWasAdded || dependenciesWereAdded) {
+            syncProjectWithGradleFiles(
+                project,
+                this::addHiltAnnotationToApplicationClasses,
+            )
+        } else {
+            addHiltAnnotationToApplicationClasses(project)
+        }
+    }
+
+    private fun syncProjectWithGradleFiles(
+        project: Project,
+        onSyncFinished: (Project) -> Unit,
+    ) {
+        val listenableFuture = GradleProjectSystemSyncManager(project)
+            .syncProject(ProjectSystemSyncManager.SyncReason.PROJECT_MODIFIED)
         listenableFuture.addListener(
-            { addAnnotationToApplicationClasses(project) },
+            { onSyncFinished(project) },
             { DumbService.getInstance(project).smartInvokeLater(it) },
         )
     }
 
-    private fun addAnnotationToApplicationClasses(project: Project) {
-        val facetsOfApplicationModules = project.service<GetAndroidFacetsOfApplicationModules>()
+    private fun addHiltAnnotationToApplicationClasses(project: Project) {
+        var codeWasAdded = false
         executeCommand {
             runWriteAction {
-                facetsOfApplicationModules()
+                project.service<GetAndroidFacetsOfApplicationModules>()()
                     .map { it.module }
                     .forEach { module ->
                         val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)
                         if (shouldGenerateApplicationClass()) {
-                            AddApplicationClassToModule(module)()
+                            val appClassWasGenerated = AddApplicationClassToModule(module)()
+                            codeWasAdded = codeWasAdded || appClassWasGenerated
+                            logger.warn("app class was generated = $appClassWasGenerated for module = ${module.name}")
                         } else {
-                            val getModuleApplicationClass = GetModuleApplicationClass(module)
-                            val applicationPsiClass = getModuleApplicationClass() ?: return@forEach
-                            val addHiltAnnotationToPsiClass = project.service<AddHiltAnnotationToPsiClass>()
-                            addHiltAnnotationToPsiClass(applicationPsiClass)
+                            val applicationPsiClass = GetModuleApplicationClass(module)() ?: return@forEach
+                            val annotationWasAdded = project.service<AddHiltAnnotationToPsiClass>()(applicationPsiClass)
+                            codeWasAdded = codeWasAdded || annotationWasAdded
+                            logger.warn("annotation was added = $annotationWasAdded to app class in module = ${module.name}")
                         }
                     }
-                project.service<ShowBalloonNotification>()("Hilt was successfully added to the project.")
-                // todo: show something else if nothing was added in fact
+                project.service<ShowBalloonNotification>()(
+                    if (codeWasAdded) {
+                        "Hilt was successfully added to the project."
+                    } else {
+                        "Hilt is already added to the project."
+                    }
+                )
             }
         }
     }
 }
+
+// todo: it's not easy to distinguish between service variables and their results
+// todo: booleans look a little ugly

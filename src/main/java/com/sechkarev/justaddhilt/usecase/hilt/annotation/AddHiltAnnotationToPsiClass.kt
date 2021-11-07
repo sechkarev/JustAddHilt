@@ -8,18 +8,18 @@ import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.KotlinLanguage
 
 @Service
-class AddHiltAnnotationToPsiClass(private val project: Project) {
+class AddHiltAnnotationToPsiClass(project: Project) {
 
     private val addHiltAnnotationToJavaClass = project.service<AddHiltAnnotationToJavaClass>()
     private val addHiltAnnotationToKotlinClass = project.service<AddHiltAnnotationToKotlinClass>()
 
-    operator fun invoke(psiClass: PsiClass) {
-        val applicationClassHasHiltAnnotation = psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
-        if (applicationClassHasHiltAnnotation) return
+    operator fun invoke(psiClass: PsiClass): Boolean {
+        if (psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")) return false
         if (psiClass.language is JavaLanguage) {
             addHiltAnnotationToJavaClass(psiClass)
         } else if (psiClass.language is KotlinLanguage) {
             addHiltAnnotationToKotlinClass(psiClass)
         }
+        return true
     }
 }
