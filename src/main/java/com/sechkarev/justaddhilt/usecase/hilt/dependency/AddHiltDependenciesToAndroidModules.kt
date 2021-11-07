@@ -3,19 +3,13 @@ package com.sechkarev.justaddhilt.usecase.hilt.dependency
 import com.android.tools.idea.gradle.dsl.api.PluginModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
-import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
-import com.android.tools.idea.gradle.dsl.api.repositories.RepositoriesModel
-import com.android.tools.idea.gradle.dsl.model.repositories.MavenCentralRepositoryModel
-import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.sechkarev.justaddhilt.usecase.project.build.GetBuildModelsWithAndroidFacet
 import com.sechkarev.justaddhilt.usecase.hilt.version.GetHiltVersion
 import com.sechkarev.justaddhilt.getGroupName
-import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 @Service
 class AddHiltDependenciesToAndroidModules(private val project: Project) {
@@ -23,18 +17,15 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
     private val getHiltVersion = project.service<GetHiltVersion>()
     private val getAllBuildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()
 
-    operator fun invoke(logger: Logger): Boolean {
-        var result = false
+    operator fun invoke(): Boolean {
+        var dependenciesWereAdded = false
         getAllBuildModelsWithAndroidFacet().forEach { moduleBuildModel ->
-            val repositories = moduleBuildModel.repositories()
-            val mavenCentralPresent = repositories.containsMethodCall(MavenCentralRepositoryModel.MAVEN_CENTRAL_METHOD_NAME)
-            logger.warn("maven central present in module = $mavenCentralPresent, repositories = ${repositories.repositories().joinToString { it.name().getValue(GradlePropertyModel.STRING_TYPE) ?: "" }}")
             val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
             val kaptPluginEnabled = pluginNames.any { it == "kotlin-kapt" }
             val hiltPluginEnabled = pluginNames.any { it == "dagger.hilt.android.plugin" }
             if (!hiltPluginEnabled) {
                 moduleBuildModel.applyPlugin("dagger.hilt.android.plugin")
-                result = true
+                dependenciesWereAdded = true
             }
             val hiltVersion = getHiltVersion()
             if (!isDependencyExist(moduleBuildModel.dependencies(), hiltImplementationDependencyName)) {
@@ -42,25 +33,27 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                     "implementation",
                     "$hiltImplementationDependencyName:$hiltVersion"
                 )
-                result = true
+                dependenciesWereAdded = true
             }
             if (!isDependencyExist(moduleBuildModel.dependencies(), hiltKaptDependencyName)) {
                 moduleBuildModel.dependencies().addArtifact(
                     if (kaptPluginEnabled) "kapt" else "annotationProcessor",
                     "$hiltKaptDependencyName:$hiltVersion"
                 )
-                result = true
+                dependenciesWereAdded = true
             }
             // todo: add test dependencies (do we even need to?)
             moduleBuildModel.applyChanges()
             moduleBuildModel.psiElement?.let { psiElement -> CodeStyleManager.getInstance(project).reformat(psiElement) }
         }
-        return result
+        return dependenciesWereAdded
     }
 
     private fun isDependencyExist(dependenciesModel: DependenciesModel, dependencyName: String) = dependenciesModel
         .all()
         .any { it is ArtifactDependencyModel && it.getGroupName() == dependencyName }
+
+
 
     private companion object {
         const val hiltImplementationDependencyName = "com.google.dagger:hilt-android"
