@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt.usecase.project
+package com.sechkarev.justaddhilt.usecase.project.kotlin
 
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.intellij.openapi.components.Service

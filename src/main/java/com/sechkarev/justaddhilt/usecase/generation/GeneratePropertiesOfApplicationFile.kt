@@ -1,21 +1,19 @@
 package com.sechkarev.justaddhilt.usecase.generation
 
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.util.IncorrectOperationException
-import com.sechkarev.justaddhilt.usecase.project.IsKotlinEnabledInProject
+import com.sechkarev.justaddhilt.usecase.project.kotlin.IsKotlinConfiguredInModule
 
 @Service
 class GeneratePropertiesOfApplicationFile(module: Module) {
 
     private val getDirectoryForApplicationFile = GetDirectoryForGeneratingApplicationFile(module)
-    private val kotlinEnabledInProject = module.project.service<IsKotlinEnabledInProject>()
-    // fixme: instead of checking whether kotlin is enabled in project, we should check whether it is enabled in MODULE. that's easy: we need to check whether the plugin 'kotlin-android' is there.
+    private val kotlinConfiguredInModule = IsKotlinConfiguredInModule(module)
 
     operator fun invoke(): ApplicationFileProperties {
         val defaultFileName = "CustomApplication"
-        val language = if (kotlinEnabledInProject()) ApplicationFileLanguage.KOTLIN else ApplicationFileLanguage.JAVA
+        val language = if (kotlinConfiguredInModule()) ApplicationFileLanguage.KOTLIN else ApplicationFileLanguage.JAVA
         return ApplicationFileProperties(
             findAvailableFileName(1, defaultFileName, language.extension),
             language,
