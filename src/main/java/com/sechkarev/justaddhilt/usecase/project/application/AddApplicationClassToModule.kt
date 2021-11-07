@@ -24,8 +24,12 @@ class AddApplicationClassToModule(private val module: Module) {
         val applicationFileProperties = generatePropertiesOfApplicationFile()
         val applicationFile = generateApplicationFile(packageName, applicationFileProperties)
         getDirectoryForApplicationFile()?.add(applicationFile)
-        module.androidFacet?.getPrimaryManifestXml()?.setApplicationName(".${applicationFileProperties.name}")
+        registerApplicationClassInManifest(applicationFileProperties.name)
         return true
+    }
+
+    private fun registerApplicationClassInManifest(name: String) {
+        module.androidFacet?.getPrimaryManifestXml()?.setApplicationName(".$name")
     }
 
     private fun AndroidManifestXmlFile.setApplicationName(name: String) {
