@@ -20,13 +20,13 @@ class AddHiltAnnotationToApplicationClasses(project: Project) {
             .map { it.module }
             .forEach { module ->
                 val shouldGenerateApplicationClass = IsApplicationClassGenerationRequiredForModule(module)()
-                if (shouldGenerateApplicationClass) {
+                codeWasAdded = if (shouldGenerateApplicationClass) {
                     val appClassWasGenerated = AddApplicationClassToModule(module)()
-                    codeWasAdded = codeWasAdded || appClassWasGenerated
+                    codeWasAdded || appClassWasGenerated
                 } else {
                     val applicationPsiClass = GetModuleApplicationClass(module)() ?: return@forEach
                     val annotationWasAdded = addHiltAnnotationToPsiClass(applicationPsiClass)
-                    codeWasAdded = codeWasAdded || annotationWasAdded
+                    codeWasAdded || annotationWasAdded
                 }
             }
         return codeWasAdded

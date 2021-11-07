@@ -13,9 +13,9 @@ repositories {
 
 dependencies {
     implementation("org.freemarker:freemarker:2.3.31")
-    implementation(kotlin("stdlib"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
