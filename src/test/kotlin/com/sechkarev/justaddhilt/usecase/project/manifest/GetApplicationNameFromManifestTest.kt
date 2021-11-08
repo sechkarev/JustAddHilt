@@ -1,14 +1,26 @@
 package com.sechkarev.justaddhilt.usecase.project.manifest
 
-import com.intellij.testFramework.HeavyPlatformTestCase
-import com.intellij.testFramework.builders.JavaModuleFixtureBuilder
-import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory
-import com.intellij.testFramework.fixtures.JavaTestFixtureFactory
-import org.junit.Assert.*
+import ComputeBasePath
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
+class GetApplicationNameFromManifestTest : BasePlatformTestCase() {
 
-class GetApplicationNameFromManifestTest : HeavyPlatformTestCase() {
-
+    @BeforeEach
     override fun setUp() {
+        super.setUp()
+        assertThat(testDataPath).isNotNull
+    }
+
+    override fun getTestDataPath(): String {
+        return ComputeBasePath()()
+    }
+
+    @Test
+    fun aTest() {
+        myFixture.configureByFile("testFile.gradle")
+        myFixture.project
     }
 }
