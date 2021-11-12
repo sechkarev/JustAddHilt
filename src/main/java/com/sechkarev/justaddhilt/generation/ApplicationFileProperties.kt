@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt.usecase.generation
+package com.sechkarev.justaddhilt.generation
 
 import com.intellij.lang.Language
 import com.intellij.lang.java.JavaLanguage

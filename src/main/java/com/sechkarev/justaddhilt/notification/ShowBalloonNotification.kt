@@ -8,9 +8,9 @@ import com.intellij.openapi.project.Project
 @Service
 class ShowBalloonNotification(private val project: Project) {
 
-    operator fun invoke(text: String) {
+    operator fun invoke(text: String, notificationType: NotificationType = NotificationType.INFORMATION) {
         NotificationGroupManager.getInstance().getNotificationGroup("Just Add Hilt Notification Group")
-            .createNotification(text, NotificationType.INFORMATION)
+            .createNotification(text, notificationType)
             .notify(project)
     }
 }

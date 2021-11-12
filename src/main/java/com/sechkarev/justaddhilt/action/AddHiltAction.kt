@@ -1,5 +1,6 @@
 package com.sechkarev.justaddhilt.action
 
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
@@ -49,7 +50,8 @@ class AddHiltAction : AnAction() {
 
     private fun showNoAndroidModulesMessage(project: Project) {
         project.service<ShowBalloonNotification>()(
-            "Looks like this is not an Android project. Hilt can't be added to it."
+            "Looks like this is not an Android project. Hilt can't be added to it.",
+            NotificationType.WARNING
         ) // todo: figure out how localization works here
     }
 
