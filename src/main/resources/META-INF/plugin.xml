@@ -19,8 +19,8 @@
     </extensions>
 
     <actions>
-        <action id="com.sechkarev.justaddhilt.action.AddHiltAction"
-                class="com.sechkarev.justaddhilt.action.AddHiltAction"
+        <action id="com.sechkarev.justaddhilt.actions.AddHiltAction"
+                class="com.sechkarev.justaddhilt.actions.AddHiltAction"
                 text="Add Hilt to the Project"
                 description="Add Hilt library to all Android modules of the current project">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
