@@ -1,6 +1,6 @@
 import java.io.File
 
-class ComputeBasePath {
+class ComputeBaseTestPath {
 
     operator fun invoke(): String {
         return File(testDataFolder).absolutePath

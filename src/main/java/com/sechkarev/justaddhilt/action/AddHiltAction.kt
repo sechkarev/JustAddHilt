@@ -30,9 +30,11 @@ class AddHiltAction : AnAction() {
             }
         }
         if (dependenciesWereAdded) {
-            project.service<SyncProjectWithGradleFiles>()() {
-                addHiltAnnotationToApplicationClasses(project)
-            }
+            project.service<SyncProjectWithGradleFiles>()(
+                onSyncFinished = {
+                    addHiltAnnotationToApplicationClasses(project)
+                }
+            )
         } else {
             addHiltAnnotationToApplicationClasses(project)
         }
@@ -45,23 +47,31 @@ class AddHiltAction : AnAction() {
                 codeWasAdded = project.service<AddHiltAnnotationToApplicationClasses>()()
             }
         }
-        showCompletionMessage(project, codeWasAdded)
+        if (codeWasAdded) {
+            showHiltWasAddedMessage(project)
+        } else {
+            showHiltAlreadyPresentMessage(project)
+        }
     }
 
     private fun showNoAndroidModulesMessage(project: Project) {
         project.service<ShowBalloonNotification>()(
             "Looks like this is not an Android project. Hilt can't be added to it.",
-            NotificationType.WARNING
+            NotificationType.WARNING,
         ) // todo: figure out how localization works here
     }
 
-    private fun showCompletionMessage(project: Project, codeWasAdded: Boolean) {
+    private fun showHiltWasAddedMessage(project: Project) {
         project.service<ShowBalloonNotification>()(
-            if (codeWasAdded) {
-                "Hilt was successfully added to the project."
-            } else {
-                "No code was added: Hilt is already added to the project."
-            }
+            "Hilt was successfully added to the project.",
+            NotificationType.INFORMATION,
+        )
+    }
+
+    private fun showHiltAlreadyPresentMessage(project: Project) {
+        project.service<ShowBalloonNotification>()(
+            "No code was added: Hilt is already added to the project.",
+            NotificationType.WARNING,
         )
     }
 }

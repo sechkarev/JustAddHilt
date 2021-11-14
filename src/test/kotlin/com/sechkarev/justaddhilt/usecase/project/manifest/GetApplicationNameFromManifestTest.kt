@@ -1,7 +1,6 @@
 package com.sechkarev.justaddhilt.usecase.project.manifest
 
-import ComputeBasePath
-import com.android.tools.idea.util.androidFacet
+import ComputeBaseTestPath
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.diagnostic.DefaultLogger
 import com.intellij.psi.PsiManager
@@ -26,7 +25,7 @@ class GetApplicationNameFromManifestTest : BasePlatformTestCase() {
     }
 
     override fun getTestDataPath(): String {
-        return ComputeBasePath()()
+        return ComputeBaseTestPath()()
     }
 
     @Test
