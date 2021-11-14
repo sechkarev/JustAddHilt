@@ -1,10 +1,11 @@
 <idea-plugin>
     <id>com.sechkarev.TestKotlinPlugin</id>
     <name>Just Add Hilt</name>
+    <version>1.0</version>
     <vendor email="sechkarevs@gmail.com" url="https://github.com/ultra-v1olence">Vladimir Sechkarev</vendor>
 
     <description><![CDATA[
-    This plugin lets you add Hilt library to your Android project.
+    This plugin adds Hilt library to all Android modules of your project.
     ]]></description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
