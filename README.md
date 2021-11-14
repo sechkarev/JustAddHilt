@@ -15,6 +15,7 @@ implementation 'com.google.dagger:hilt-android:$hilt-version'
 annotationProcessor 'com.google.dagger:hilt-compiler:$hilt-version'
 ```
 are added to all modules with [Android facet](https://www.jetbrains.com/help/idea/android-facet-page.html). If a repository to retrieve these packages from (`google()` or `mavenCentral()`) is missing in the project-level `build.gradle`, it gets added as well.
+
 3. All Android modules (i.e. modules with plugin `com.android.application` enabled in their `build.gradle`) receive `Application` classes annotated with `@HiltAndroidApp`. These classes are registered in the respective manifest. If an `Application` class already exists and is registered, only the annotation `@HiltAndroidApp` is added.
 
 ## So there's no option to pick the modules the dependencies will be added to?
@@ -22,6 +23,7 @@ No, not yet. In order to implement such picking I had to add at least one GUI wi
 
 ## What is the value of `$hilt-version` mentioned above?
 Currently it is `2.39.1`. This constant is hardcoded in the plugin's source code. I played around with the idea of retrieving the fresh Hilt version from the [official site](https://dagger.dev/hilt/) or [Github](https://github.com/google/dagger/releases), but this approach increased the plugin's execution time so much that I decided to get rid of the network code. Might return it back later.
+
 Also, in future Hilt releases Google may change the library's addition algorithm, so yeah, for now version hardcoding it is.
 
 ## Are test dependencies added?
