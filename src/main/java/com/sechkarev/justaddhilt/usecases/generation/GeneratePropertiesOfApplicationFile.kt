@@ -1,6 +1,5 @@
 package com.sechkarev.justaddhilt.usecases.generation
 
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.module.Module
 import com.intellij.util.IncorrectOperationException
 import com.sechkarev.justaddhilt.generation.ApplicationFileLanguage

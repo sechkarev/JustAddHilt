@@ -8,9 +8,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.CodeStyleManager
-import com.sechkarev.justaddhilt.usecases.project.build.GetBuildModelsWithAndroidFacet
+import com.sechkarev.justaddhilt.ext.getGroupName
 import com.sechkarev.justaddhilt.usecases.hilt.version.GetHiltVersion
-import com.sechkarev.justaddhilt.getGroupName
+import com.sechkarev.justaddhilt.usecases.project.build.GetBuildModelsWithAndroidFacet
 
 @Service
 class AddHiltDependenciesToAndroidModules(private val project: Project) {

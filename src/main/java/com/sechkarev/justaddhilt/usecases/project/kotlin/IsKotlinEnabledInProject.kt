@@ -3,7 +3,7 @@ package com.sechkarev.justaddhilt.usecases.project.kotlin
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
-import com.sechkarev.justaddhilt.getGroupName
+import com.sechkarev.justaddhilt.ext.getGroupName
 
 @Service
 class IsKotlinEnabledInProject(private val project: Project) {

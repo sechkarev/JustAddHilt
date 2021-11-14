@@ -1,4 +1,4 @@
-package com.sechkarev.justaddhilt.usecases.generation
+package com.sechkarev.justaddhilt.generation
 
 import freemarker.template.Configuration
 import freemarker.template.TemplateExceptionHandler

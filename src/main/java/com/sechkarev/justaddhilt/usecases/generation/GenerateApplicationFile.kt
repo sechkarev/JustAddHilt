@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.sechkarev.justaddhilt.generation.ApplicationFileProperties
+import com.sechkarev.justaddhilt.generation.freeMarkerConfig
 import java.io.StringWriter
 
 @Service
