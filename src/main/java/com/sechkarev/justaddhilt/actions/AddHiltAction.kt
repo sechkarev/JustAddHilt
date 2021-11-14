@@ -1,12 +1,13 @@
 package com.sechkarev.justaddhilt.actions
 
-import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.sechkarev.justaddhilt.notifications.ShowBalloonNotification
+import com.sechkarev.justaddhilt.notifications.ShowHiltAlreadyPresentNotification
+import com.sechkarev.justaddhilt.notifications.ShowHiltWasAddedNotification
+import com.sechkarev.justaddhilt.notifications.ShowNoAndroidModulesNotification
 import com.sechkarev.justaddhilt.usecases.hilt.annotation.AddHiltAnnotationToApplicationClasses
 import com.sechkarev.justaddhilt.usecases.hilt.dependencies.AddHiltDependenciesToAndroidModules
 import com.sechkarev.justaddhilt.usecases.hilt.dependencies.AddHiltGradlePluginDependencyToBuildscript
@@ -20,7 +21,7 @@ class AddHiltAction : AnAction() {
         val project = e.project ?: return
 
         if (!project.service<AreAndroidModulesPresentInProject>()()) {
-            showNoAndroidModulesMessage(project)
+            project.service<ShowNoAndroidModulesNotification>()()
             return
         }
 
@@ -51,30 +52,9 @@ class AddHiltAction : AnAction() {
             }
         }
         if (codeWasAdded) {
-            showHiltWasAddedMessage(project)
+            project.service<ShowHiltWasAddedNotification>()()
         } else {
-            showHiltAlreadyPresentMessage(project)
+            project.service<ShowHiltAlreadyPresentNotification>()()
         }
-    }
-
-    private fun showNoAndroidModulesMessage(project: Project) {
-        project.service<ShowBalloonNotification>()(
-            "Looks like this is not an Android project. Hilt can't be added to it.",
-            NotificationType.WARNING,
-        ) // todo: figure out how localization works here
-    }
-
-    private fun showHiltWasAddedMessage(project: Project) {
-        project.service<ShowBalloonNotification>()(
-            "Hilt was successfully added to the project.",
-            NotificationType.INFORMATION,
-        )
-    }
-
-    private fun showHiltAlreadyPresentMessage(project: Project) {
-        project.service<ShowBalloonNotification>()(
-            "No code was added: Hilt is already added to the project.",
-            NotificationType.WARNING,
-        )
     }
 }
