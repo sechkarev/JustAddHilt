@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.sechkarev.justaddhilt.notification.ShowBalloonNotification
 import com.sechkarev.justaddhilt.usecase.hilt.annotation.AddHiltAnnotationToApplicationClasses
 import com.sechkarev.justaddhilt.usecase.hilt.dependency.AddHiltDependenciesToAndroidModules
+import com.sechkarev.justaddhilt.usecase.hilt.dependency.AddHiltGradlePluginDependencyToBuildscript
 import com.sechkarev.justaddhilt.usecase.project.build.AreAndroidModulesPresentInProject
 import com.sechkarev.justaddhilt.usecase.project.build.SyncProjectWithGradleFiles
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
@@ -26,7 +27,9 @@ class AddHiltAction : AnAction() {
         var dependenciesWereAdded = false
         executeCommand {
             runWriteAction {
-                dependenciesWereAdded = project.service<AddHiltDependenciesToAndroidModules>()()
+                val buildscriptGradlePluginWasAdded = project.service<AddHiltGradlePluginDependencyToBuildscript>()()
+                val hiltDependenciesWereAdded = project.service<AddHiltDependenciesToAndroidModules>()()
+                dependenciesWereAdded = buildscriptGradlePluginWasAdded || hiltDependenciesWereAdded
             }
         }
         if (dependenciesWereAdded) {
