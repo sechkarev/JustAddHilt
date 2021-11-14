@@ -1,7 +1,6 @@
 <idea-plugin>
     <id>com.sechkarev.TestKotlinPlugin</id>
     <name>Just Add Hilt</name>
-    <version>1.0</version>
     <vendor email="sechkarevs@gmail.com" url="https://github.com/ultra-v1olence">Vladimir Sechkarev</vendor>
 
     <description><![CDATA[
