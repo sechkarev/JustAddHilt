@@ -1,7 +1,6 @@
 package com.sechkarev.justaddhilt.usecases.project.application
 
 import com.android.tools.idea.util.androidFacet
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.psi.XmlRecursiveElementVisitor
@@ -12,7 +11,6 @@ import com.sechkarev.justaddhilt.usecases.generation.GetDirectoryForGeneratingAp
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 
-@Service
 class AddApplicationClassToModule(private val module: Module) {
 
     private val generateApplicationFile = module.project.service<GenerateApplicationFile>()

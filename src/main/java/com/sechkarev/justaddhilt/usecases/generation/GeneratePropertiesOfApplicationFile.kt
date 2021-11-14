@@ -7,7 +7,6 @@ import com.sechkarev.justaddhilt.generation.ApplicationFileLanguage
 import com.sechkarev.justaddhilt.generation.ApplicationFileProperties
 import com.sechkarev.justaddhilt.usecases.project.kotlin.IsKotlinConfiguredInModule
 
-@Service
 class GeneratePropertiesOfApplicationFile(module: Module) {
 
     private val getDirectoryForApplicationFile = GetDirectoryForGeneratingApplicationFile(module)

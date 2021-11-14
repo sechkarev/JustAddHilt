@@ -9,7 +9,6 @@ import com.intellij.psi.util.ClassUtil
 import com.sechkarev.justaddhilt.usecases.project.manifest.GetApplicationNameFromManifest
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 
-@Service
 class GetModuleApplicationClass(private val module: Module) {
 
     private val getApplicationNameFromManifest = GetApplicationNameFromManifest(module)

@@ -8,7 +8,6 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiManager
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 
-@Service
 class GetDirectoryForGeneratingApplicationFile(private val module: Module) {
 
     operator fun invoke(): PsiDirectory? {

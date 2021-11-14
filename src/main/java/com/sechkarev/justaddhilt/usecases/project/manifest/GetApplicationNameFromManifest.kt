@@ -9,7 +9,6 @@ import com.intellij.psi.xml.XmlTag
 import org.jetbrains.android.dom.manifest.AndroidManifestXmlFile
 import org.jetbrains.android.dom.manifest.getPrimaryManifestXml
 
-@Service
 class GetApplicationNameFromManifest(private val module: Module) {
 
     operator fun invoke() = module.androidFacet?.getPrimaryManifestXml()?.findApplicationName()

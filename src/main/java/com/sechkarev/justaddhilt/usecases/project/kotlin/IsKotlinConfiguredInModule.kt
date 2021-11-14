@@ -6,7 +6,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 
-@Service
 class IsKotlinConfiguredInModule(private val module: Module) {
 
     private val isKotlinEnabledInProject = module.project.service<IsKotlinEnabledInProject>()
