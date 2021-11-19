@@ -38,7 +38,10 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                 dependenciesWereAdded = true
             }
             moduleBuildModel.applyChanges()
-            moduleBuildModel.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
+            val codeStyleManager = CodeStyleManager.getInstance(project)
+            moduleBuildModel.dependencies()
+                .psiElement
+                ?.let { codeStyleManager.reformat(it) }
         }
         return dependenciesWereAdded
     }
