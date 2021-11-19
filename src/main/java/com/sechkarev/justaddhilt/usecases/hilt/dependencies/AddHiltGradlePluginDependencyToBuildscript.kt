@@ -26,7 +26,11 @@ class AddHiltGradlePluginDependencyToBuildscript(private val project: Project) {
             "$hiltPluginGroup:$hiltPluginName:${getHiltVersion()}"
         )
         projectBuildModel.applyChanges()
-        projectBuildModel.psiElement?.let { CodeStyleManager.getInstance(project).reformat(it) }
+        projectBuildModel
+            .buildscript()
+            .dependencies()
+            .psiElement
+            ?.let { CodeStyleManager.getInstance(project).reformat(it) }
         return true
     }
 
