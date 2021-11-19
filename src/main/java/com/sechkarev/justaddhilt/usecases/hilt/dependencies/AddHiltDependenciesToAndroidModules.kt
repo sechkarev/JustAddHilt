@@ -38,10 +38,7 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                 dependenciesWereAdded = true
             }
             moduleBuildModel.applyChanges()
-            val codeStyleManager = CodeStyleManager.getInstance(project)
-            moduleBuildModel.dependencies()
-                .psiElement
-                ?.let { codeStyleManager.reformat(it) }
+            reformatChangedBlocks(moduleBuildModel)
         }
         return dependenciesWereAdded
     }
@@ -72,6 +69,12 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
             if (kaptPluginEnabled) "kapt" else "annotationProcessor",
             "$hiltKaptDependencyName:$hiltVersion"
         )
+    }
+
+    private fun reformatChangedBlocks(moduleBuildModel: GradleBuildModel) {
+        val codeStyleManager = CodeStyleManager.getInstance(project)
+        moduleBuildModel.dependencies().psiElement?.let { codeStyleManager.reformat(it) }
+        moduleBuildModel.pluginsPsiElement?.let { codeStyleManager.reformat(it) }
     }
 
     private companion object {
