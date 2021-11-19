@@ -12,7 +12,7 @@ class ShowHiltWasAddedNotification(project: Project) {
 
     operator fun invoke() {
         showBalloonNotification(
-            "Hilt was successfully added to the project.",
+            getString("action.com.sechkarev.justaddhilt.actions.AddHiltAction.messageHiltWasAdded"),
             NotificationType.INFORMATION,
         )
     }

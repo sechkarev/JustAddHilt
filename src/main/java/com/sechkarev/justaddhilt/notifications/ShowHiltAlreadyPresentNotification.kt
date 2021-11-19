@@ -12,7 +12,7 @@ class ShowHiltAlreadyPresentNotification(project: Project) {
 
     operator fun invoke() {
         showBalloonNotification(
-            "No code was added: Hilt is already added to the project.",
+            getString("action.com.sechkarev.justaddhilt.actions.AddHiltAction.messageHiltAlreadyPresent"),
             NotificationType.WARNING,
         )
     }

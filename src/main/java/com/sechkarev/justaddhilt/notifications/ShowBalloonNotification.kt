@@ -8,9 +8,10 @@ import com.intellij.openapi.project.Project
 @Service
 class ShowBalloonNotification(private val project: Project) {
 
-    // todo: figure out how localization works here
     operator fun invoke(text: String, notificationType: NotificationType = NotificationType.INFORMATION) {
-        NotificationGroupManager.getInstance().getNotificationGroup("Just Add Hilt Notification Group")
+        NotificationGroupManager
+            .getInstance()
+            .getNotificationGroup("Just Add Hilt Notification Group")
             .createNotification(text, notificationType)
             .notify(project)
     }

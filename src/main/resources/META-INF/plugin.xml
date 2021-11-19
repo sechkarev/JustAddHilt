@@ -15,7 +15,9 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup id="Just Add Hilt Notification Group" displayType="BALLOON"/>
+        <notificationGroup
+                id="Just Add Hilt Notification Group"
+                displayType="BALLOON"/>
     </extensions>
 
     <resource-bundle>messages.ActionBundle</resource-bundle>

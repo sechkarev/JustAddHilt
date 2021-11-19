@@ -12,7 +12,7 @@ class ShowNoAndroidModulesNotification(project: Project) {
 
     operator fun invoke() {
         showBalloonNotification(
-            "Looks like this is not an Android project. Hilt can't be added to it.",
+            getString("action.com.sechkarev.justaddhilt.actions.AddHiltAction.messageNoAndroidModules"),
             NotificationType.WARNING,
         )
     }
