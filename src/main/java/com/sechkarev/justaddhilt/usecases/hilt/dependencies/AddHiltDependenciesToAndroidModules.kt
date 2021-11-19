@@ -19,13 +19,14 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
     private val getAllBuildModelsWithAndroidFacet = project.service<GetBuildModelsWithAndroidFacet>()
 
     operator fun invoke(): Boolean {
+        var pluginWasAdded = false
         var dependenciesWereAdded = false
         getAllBuildModelsWithAndroidFacet().forEach { moduleBuildModel ->
             val pluginNames = PluginModel.extractNames(moduleBuildModel.plugins())
             val hiltPluginEnabled = pluginNames.any { it == hiltPluginName }
             if (!hiltPluginEnabled) {
                 moduleBuildModel.applyPlugin(hiltPluginName)
-                dependenciesWereAdded = true
+                pluginWasAdded = true
             }
             val hiltVersion = getHiltVersion()
             if (!isDependencyExist(moduleBuildModel.dependencies(), hiltImplementationDependencyName)) {
@@ -38,9 +39,19 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                 dependenciesWereAdded = true
             }
             moduleBuildModel.applyChanges()
-            reformatChangedBlocks(moduleBuildModel)
+            if (pluginWasAdded) {
+                moduleBuildModel
+                    .pluginsPsiElement
+                    ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+            }
+            if (dependenciesWereAdded) {
+                moduleBuildModel
+                    .dependencies()
+                    .psiElement
+                    ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+            }
         }
-        return dependenciesWereAdded
+        return pluginWasAdded || dependenciesWereAdded
     }
 
     private fun isDependencyExist(
@@ -69,12 +80,6 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
             if (kaptPluginEnabled) "kapt" else "annotationProcessor",
             "$hiltKaptDependencyName:$hiltVersion"
         )
-    }
-
-    private fun reformatChangedBlocks(moduleBuildModel: GradleBuildModel) {
-        val codeStyleManager = CodeStyleManager.getInstance(project)
-        moduleBuildModel.dependencies().psiElement?.let { codeStyleManager.reformat(it) }
-        moduleBuildModel.pluginsPsiElement?.let { codeStyleManager.reformat(it) }
     }
 
     private companion object {
