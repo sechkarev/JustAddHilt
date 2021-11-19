@@ -17,6 +17,6 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
     operator fun invoke(psiClass: PsiClass) {
         val document = PsiDocumentManager.getInstance(project).getDocument(psiClass.containingFile)
         document?.insertString(psiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
-        // todo: shorten class references and reformat
+        // todo: shorten class references and reformat (do I need to recreate PSI tree for that?)
     }
 }
