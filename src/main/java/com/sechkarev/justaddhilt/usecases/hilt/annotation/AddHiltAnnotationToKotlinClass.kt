@@ -37,6 +37,5 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
                 psiClass.containingFile?.let { CodeStyleManager.getInstance(project).reformat(it) }
             }
         }
-
     }
 }
