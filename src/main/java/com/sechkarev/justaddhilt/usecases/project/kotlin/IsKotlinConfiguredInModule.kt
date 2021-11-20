@@ -1,10 +1,12 @@
 package com.sechkarev.justaddhilt.usecases.project.kotlin
 
+import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
-import com.intellij.openapi.components.Service
+import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
+import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 class IsKotlinConfiguredInModule(private val module: Module) {
 
@@ -12,9 +14,15 @@ class IsKotlinConfiguredInModule(private val module: Module) {
 
     operator fun invoke(): Boolean {
         if (!isKotlinEnabledInProject()) return false
-        return ProjectBuildModel
-            .get(module.project)
-            .getModuleBuildModel(module)
+        var moduleBuildModel: GradleBuildModel? = null
+        executeCommand {
+            moduleBuildModel = runReadAction {
+                ProjectBuildModel
+                    .get(module.project)
+                    .getModuleBuildModel(module)
+            }
+        }
+        return moduleBuildModel
             ?.plugins()
             ?.any {
                 it.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("kotlin-android") == true

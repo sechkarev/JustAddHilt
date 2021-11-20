@@ -4,6 +4,7 @@ import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.PluginModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.ArtifactDependencyModel
 import com.android.tools.idea.gradle.dsl.api.dependencies.DependenciesModel
+import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
@@ -11,6 +12,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.sechkarev.justaddhilt.ext.getGroupName
 import com.sechkarev.justaddhilt.usecases.hilt.version.GetHiltVersion
 import com.sechkarev.justaddhilt.usecases.project.build.GetBuildModelsWithAndroidFacet
+import org.jetbrains.kotlin.idea.util.application.runWriteAction
 
 @Service
 class AddHiltDependenciesToAndroidModules(private val project: Project) {
@@ -38,17 +40,29 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                 addHiltKaptDependency(moduleBuildModel, kaptPluginEnabled, hiltVersion)
                 dependenciesWereAdded = true
             }
-            moduleBuildModel.applyChanges()
+            executeCommand {
+                runWriteAction {
+                    moduleBuildModel.applyChanges()
+                }
+            }
             if (pluginWasAdded) {
-                moduleBuildModel
-                    .pluginsPsiElement
-                    ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                executeCommand {
+                    runWriteAction {
+                        moduleBuildModel
+                            .pluginsPsiElement
+                            ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                    }
+                }
             }
             if (dependenciesWereAdded) {
-                moduleBuildModel
-                    .dependencies()
-                    .psiElement
-                    ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                executeCommand {
+                    runWriteAction {
+                        moduleBuildModel
+                            .dependencies()
+                            .psiElement
+                            ?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                    }
+                }
             }
         }
         return pluginWasAdded || dependenciesWereAdded

@@ -1,5 +1,7 @@
 package com.sechkarev.justaddhilt.usecases.hilt.annotation
 
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
@@ -19,17 +21,22 @@ import org.jetbrains.kotlin.psi.KtFile
 class AddHiltAnnotationToKotlinClass(private val project: Project) {
 
     operator fun invoke(psiClass: PsiClass) {
-        val document = PsiDocumentManager.getInstance(project).getDocument(psiClass.containingFile)
-        document?.insertString(psiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
-        FileContentUtil.reparseFiles(
-            project,
-            listOf(psiClass.containingFile.virtualFile),
-            false,
-        )
-        // fixme: the KtFile does not contain the new annotation
-        document
-            ?.let { PsiDocumentManager.getInstance(project).getPsiFile(it) as KtFile }
-            ?.let { ShortenReferences.DEFAULT.process(it) }
-        psiClass.containingFile?.let { CodeStyleManager.getInstance(project).reformat(it) }
+        executeCommand {
+            runWriteAction {
+                val document = PsiDocumentManager.getInstance(project).getDocument(psiClass.containingFile)
+                document?.insertString(psiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
+                FileContentUtil.reparseFiles(
+                    project,
+                    listOf(psiClass.containingFile.virtualFile),
+                    false,
+                )
+                // fixme: the KtFile does not contain the new annotation
+                document
+                    ?.let { PsiDocumentManager.getInstance(project).getPsiFile(it) as KtFile }
+                    ?.let { ShortenReferences.DEFAULT.process(it) }
+                psiClass.containingFile?.let { CodeStyleManager.getInstance(project).reformat(it) }
+            }
+        }
+
     }
 }
