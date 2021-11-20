@@ -6,6 +6,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.KotlinLanguage
+import org.jetbrains.kotlin.idea.util.application.executeOnPooledThread
+import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 @Service
 class AddHiltAnnotationToPsiClass(project: Project) {
@@ -14,7 +16,15 @@ class AddHiltAnnotationToPsiClass(project: Project) {
     private val addHiltAnnotationToKotlinClass = project.service<AddHiltAnnotationToKotlinClass>()
 
     operator fun invoke(psiClass: PsiClass): Boolean {
-        if (psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")) return false
+        var hiltAnnotationAlreadyPresent = false
+        executeOnPooledThread {
+            runReadAction {
+                hiltAnnotationAlreadyPresent = psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
+            }
+        }.get()
+        if (hiltAnnotationAlreadyPresent) {
+            return false
+        }
         if (psiClass.language is JavaLanguage) {
             addHiltAnnotationToJavaClass(psiClass)
         } else if (psiClass.language is KotlinLanguage) {

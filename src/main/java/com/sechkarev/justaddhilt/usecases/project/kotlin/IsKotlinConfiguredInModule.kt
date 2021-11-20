@@ -3,9 +3,9 @@ package com.sechkarev.justaddhilt.usecases.project.kotlin
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
-import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
+import org.jetbrains.kotlin.idea.util.application.executeOnPooledThread
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 class IsKotlinConfiguredInModule(private val module: Module) {
@@ -15,13 +15,13 @@ class IsKotlinConfiguredInModule(private val module: Module) {
     operator fun invoke(): Boolean {
         if (!isKotlinEnabledInProject()) return false
         var moduleBuildModel: GradleBuildModel? = null
-        executeCommand {
+        executeOnPooledThread {
             moduleBuildModel = runReadAction {
                 ProjectBuildModel
                     .get(module.project)
                     .getModuleBuildModel(module)
             }
-        }
+        }.get()
         return moduleBuildModel
             ?.plugins()
             ?.any {
