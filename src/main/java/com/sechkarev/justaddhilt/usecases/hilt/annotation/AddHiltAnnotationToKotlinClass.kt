@@ -3,6 +3,7 @@ package com.sechkarev.justaddhilt.usecases.hilt.annotation
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
@@ -25,6 +26,7 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
             runWriteAction {
                 val document = PsiDocumentManager.getInstance(project).getDocument(psiClass.containingFile)
                 document?.insertString(psiClass.startOffset, "@dagger.hilt.android.HiltAndroidApp\n")
+                document?.let { FileDocumentManager.getInstance().saveDocument(it) }
                 FileContentUtil.reparseFiles(
                     project,
                     listOf(psiClass.containingFile.virtualFile),
