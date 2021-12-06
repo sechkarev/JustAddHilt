@@ -3,10 +3,10 @@ package com.sechkarev.justaddhilt.usecases.project.kotlin
 import com.android.tools.idea.gradle.dsl.api.GradleBuildModel
 import com.android.tools.idea.gradle.dsl.api.ProjectBuildModel
 import com.android.tools.idea.gradle.dsl.api.ext.GradlePropertyModel
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
-import org.jetbrains.kotlin.idea.util.application.executeOnPooledThread
-import org.jetbrains.kotlin.idea.util.application.runReadAction
+import com.intellij.util.concurrency.AppExecutorUtil
 
 class IsKotlinConfiguredInModule(private val module: Module) {
 
@@ -14,22 +14,21 @@ class IsKotlinConfiguredInModule(private val module: Module) {
 
     operator fun invoke(): Boolean {
         if (!isKotlinEnabledInProject()) return false
-        var moduleBuildModel: GradleBuildModel? = null
-        executeOnPooledThread {
-            moduleBuildModel = runReadAction {
-                if (module.isDisposed || module.project.isDisposed) {
-                    null
-                } else {
-                    ProjectBuildModel
-                        .get(module.project)
-                        .getModuleBuildModel(module)
-                }
+        return ReadAction.nonBlocking<GradleBuildModel> {
+            if (module.isDisposed || module.project.isDisposed) {
+                null
+            } else {
+                ProjectBuildModel
+                    .get(module.project)
+                    .getModuleBuildModel(module)
             }
-        }.get()
-        return moduleBuildModel
-            ?.plugins()
-            ?.any {
-                it.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("kotlin-android") == true
+        }.expireWith(module.project)
+            .submit(AppExecutorUtil.getAppExecutorService())
+            .get()
+            ?.let { gradleBuildModel ->
+                gradleBuildModel.plugins().any { pluginModel ->
+                    pluginModel.name().getValue(GradlePropertyModel.STRING_TYPE)?.equals("kotlin-android") == true
+                }
             }
             ?: false
     }
