@@ -21,7 +21,7 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
 
     operator fun invoke(psiClass: PsiClass) {
         val psiClassQualifiedName = psiClass.qualifiedName ?: return
-        executeCommand {
+        executeCommand(project) {
             runWriteAction {
                 val kotlinClass = KotlinAsJavaSupport
                     .getInstance(project)
