@@ -21,7 +21,7 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
 
     operator fun invoke(psiClass: PsiClass) {
         val psiClassQualifiedName = psiClass.qualifiedName ?: return
-        executeCommand(project) {
+        executeCommand(project, "Add Hilt Annotation To Class ${psiClass.name}") {
             runWriteAction {
                 val kotlinClass = KotlinAsJavaSupport
                     .getInstance(project)

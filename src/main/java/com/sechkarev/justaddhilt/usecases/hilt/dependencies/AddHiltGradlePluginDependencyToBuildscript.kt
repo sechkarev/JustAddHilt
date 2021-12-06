@@ -23,7 +23,7 @@ class AddHiltGradlePluginDependencyToBuildscript(private val project: Project) {
         if (hiltGradlePluginAlreadyPresent) {
             return false
         }
-        executeCommand(project) {
+        executeCommand(project, "Add Hilt Dependency to Project-Wide Gradle Script") {
             runWriteAction {
                 dependencies.addArtifact(
                     configurationName,

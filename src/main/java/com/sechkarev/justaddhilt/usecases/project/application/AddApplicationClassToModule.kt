@@ -23,7 +23,7 @@ class AddApplicationClassToModule(private val module: Module) {
         val packageName = module.androidFacet?.getPrimaryManifestXml()?.packageName ?: return false
         val applicationFileProperties = generatePropertiesOfApplicationFile()
         val applicationFile = generateApplicationFile(packageName, applicationFileProperties)
-        executeCommand(module.project) {
+        executeCommand(module.project, "Add Class ${applicationFileProperties.name} to Module ${module.name}") {
             runWriteAction {
                 getDirectoryForApplicationFile()?.add(applicationFile)
                 registerApplicationClassInManifest(applicationFileProperties.name)
