@@ -12,8 +12,8 @@ import org.jetbrains.kotlin.idea.util.addAnnotation
 import org.jetbrains.kotlin.name.FqName
 
 /*
- Unfortunately, we can't add an annotation to a Kotlin class via PSI tree as we did to a Java class
- because what we have here as a PsiClass is an instance of KtUltraLightClass, and calling addAnnotation
+ Unfortunately, we have to search for the class to add the annotation to yet another time
+ because the argument of invoke(...) is an instance of KtUltraLightClass, and calling addAnnotation on it
  throws UnsupportedOperationException
  */
 @Service

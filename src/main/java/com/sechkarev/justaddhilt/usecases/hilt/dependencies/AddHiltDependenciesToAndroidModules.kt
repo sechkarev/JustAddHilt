@@ -43,20 +43,12 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
             executeCommand {
                 runWriteAction {
                     moduleBuildModel.applyChanges()
-                }
-            }
-            if (pluginWasAdded) {
-                executeCommand {
-                    runWriteAction {
+                    if (pluginWasAdded) {
                         moduleBuildModel
                             .pluginsPsiElement
                             ?.let { CodeStyleManager.getInstance(project).reformat(it) }
                     }
-                }
-            }
-            if (dependenciesWereAdded) {
-                executeCommand {
-                    runWriteAction {
+                    if (dependenciesWereAdded) {
                         moduleBuildModel
                             .dependencies()
                             .psiElement

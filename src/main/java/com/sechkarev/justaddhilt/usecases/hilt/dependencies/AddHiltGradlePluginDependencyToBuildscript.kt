@@ -23,7 +23,7 @@ class AddHiltGradlePluginDependencyToBuildscript(private val project: Project) {
         if (hiltGradlePluginAlreadyPresent) {
             return false
         }
-        executeCommand {
+        executeCommand(project) {
             runWriteAction {
                 dependencies.addArtifact(
                     configurationName,

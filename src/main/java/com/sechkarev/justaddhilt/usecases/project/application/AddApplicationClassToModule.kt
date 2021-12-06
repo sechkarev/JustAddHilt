@@ -23,7 +23,7 @@ class AddApplicationClassToModule(private val module: Module) {
         val packageName = module.androidFacet?.getPrimaryManifestXml()?.packageName ?: return false
         val applicationFileProperties = generatePropertiesOfApplicationFile()
         val applicationFile = generateApplicationFile(packageName, applicationFileProperties)
-        executeCommand {
+        executeCommand(module.project) {
             runWriteAction {
                 getDirectoryForApplicationFile()?.add(applicationFile)
                 registerApplicationClassInManifest(applicationFileProperties.name)
@@ -37,12 +37,14 @@ class AddApplicationClassToModule(private val module: Module) {
     }
 
     private fun AndroidManifestXmlFile.setApplicationName(name: String) {
-        accept(object : XmlRecursiveElementVisitor() {
-            override fun visitXmlTag(tag: XmlTag?) {
-                super.visitXmlTag(tag)
-                if ("application" != tag?.name) return
-                tag.setAttribute("android:name", name)
+        accept(
+            object : XmlRecursiveElementVisitor() {
+                override fun visitXmlTag(tag: XmlTag?) {
+                    super.visitXmlTag(tag)
+                    if ("application" != tag?.name) return
+                    tag.setAttribute("android:name", name)
+                }
             }
-        })
+        )
     }
 }

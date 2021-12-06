@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.idea.util.application.runWriteAction
 class AddHiltAnnotationToJavaClass(private val project: Project) {
 
     operator fun invoke(psiClass: PsiClass) {
-        executeCommand {
+        executeCommand(project) {
             runWriteAction {
                 val addedAnnotation = psiClass
                     .modifierList
