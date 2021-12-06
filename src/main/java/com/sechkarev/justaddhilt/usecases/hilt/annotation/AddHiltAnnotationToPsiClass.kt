@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.idea.util.application.executeOnPooledThread
 import org.jetbrains.kotlin.idea.util.application.runReadAction
 
 @Service
-class AddHiltAnnotationToPsiClass(project: Project) {
+class AddHiltAnnotationToPsiClass(private val project: Project) {
 
     private val addHiltAnnotationToJavaClass = project.service<AddHiltAnnotationToJavaClass>()
     private val addHiltAnnotationToKotlinClass = project.service<AddHiltAnnotationToKotlinClass>()
@@ -18,8 +18,12 @@ class AddHiltAnnotationToPsiClass(project: Project) {
     operator fun invoke(psiClass: PsiClass): Boolean {
         var hiltAnnotationAlreadyPresent = false
         executeOnPooledThread {
-            runReadAction {
-                hiltAnnotationAlreadyPresent = psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
+            hiltAnnotationAlreadyPresent = runReadAction {
+                if (project.isDisposed) {
+                    false
+                } else {
+                    psiClass.hasAnnotation("dagger.hilt.android.HiltAndroidApp")
+                }
             }
         }.get()
         if (hiltAnnotationAlreadyPresent) {

@@ -17,9 +17,13 @@ class IsKotlinConfiguredInModule(private val module: Module) {
         var moduleBuildModel: GradleBuildModel? = null
         executeOnPooledThread {
             moduleBuildModel = runReadAction {
-                ProjectBuildModel
-                    .get(module.project)
-                    .getModuleBuildModel(module)
+                if (module.isDisposed || module.project.isDisposed) {
+                    null
+                } else {
+                    ProjectBuildModel
+                        .get(module.project)
+                        .getModuleBuildModel(module)
+                }
             }
         }.get()
         return moduleBuildModel
