@@ -8,7 +8,6 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
-import com.intellij.psi.codeStyle.CodeStyleManager
 import com.sechkarev.justaddhilt.ext.getGroupName
 import com.sechkarev.justaddhilt.usecases.hilt.version.GetHiltVersion
 import com.sechkarev.justaddhilt.usecases.project.build.GetBuildModelsWithAndroidFacet
@@ -40,20 +39,12 @@ class AddHiltDependenciesToAndroidModules(private val project: Project) {
                 addHiltKaptDependency(moduleBuildModel, kaptPluginEnabled, hiltVersion)
                 dependenciesWereAdded = true
             }
-            executeCommand {
+            executeCommand(
+                project = moduleBuildModel.project,
+                name = "Add Hilt Dependencies to Module ${moduleBuildModel.moduleRootDirectory.name}",
+            ) {
                 runWriteAction {
                     moduleBuildModel.applyChanges()
-                    if (pluginWasAdded) {
-                        moduleBuildModel
-                            .pluginsPsiElement
-                            ?.let { CodeStyleManager.getInstance(project).reformat(it) }
-                    }
-                    if (dependenciesWereAdded) {
-                        moduleBuildModel
-                            .dependencies()
-                            .psiElement
-                            ?.let { CodeStyleManager.getInstance(project).reformat(it) }
-                    }
                 }
             }
         }
