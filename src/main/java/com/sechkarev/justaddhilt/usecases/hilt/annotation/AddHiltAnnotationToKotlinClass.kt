@@ -5,8 +5,10 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiImportList
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.asJava.KotlinAsJavaSupport
 import org.jetbrains.kotlin.idea.util.addAnnotation
 import org.jetbrains.kotlin.name.FqName
@@ -31,7 +33,11 @@ class AddHiltAnnotationToKotlinClass(private val project: Project) {
                     )
                     .first()
                 kotlinClass.addAnnotation(FqName("dagger.hilt.android.HiltAndroidApp"))
-                CodeStyleManager.getInstance(project).reformat(kotlinClass.parent)
+                val codeStyleManager = CodeStyleManager.getInstance(project)
+                codeStyleManager.reformat(kotlinClass)
+                PsiTreeUtil.findChildOfType(kotlinClass.parent, PsiImportList::class.java)?.let {
+                    codeStyleManager.reformat(it)
+                }
             }
         }
     }

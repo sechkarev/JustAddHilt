@@ -20,9 +20,10 @@ class AddHiltAnnotationToJavaClass(private val project: Project) {
                     .modifierList
                     ?.addAnnotation("dagger.hilt.android.HiltAndroidApp")
                 addedAnnotation?.let { JavaCodeStyleManager.getInstance(project).shortenClassReferences(it) }
-                addedAnnotation?.parent?.let { CodeStyleManager.getInstance(project).reformat(it) }
+                val codeStyleManager = CodeStyleManager.getInstance(project)
+                addedAnnotation?.parent?.let { codeStyleManager.reformat(it) }
                 PsiTreeUtil.findChildOfType(addedAnnotation?.containingFile, PsiImportList::class.java)?.let {
-                    CodeStyleManager.getInstance(project).reformat(it)
+                    codeStyleManager.reformat(it)
                 }
             }
         }
