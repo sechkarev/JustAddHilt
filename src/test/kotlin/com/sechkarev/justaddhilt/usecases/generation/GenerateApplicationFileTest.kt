@@ -41,13 +41,15 @@ class GenerateApplicationFileTest : BasePlatformTestCase() {
     private companion object {
         const val packageName = "com.sechkarev.justaddhilt"
         const val className = "TestApplication"
-        const val expectedAppFileText = """package ${packageName}
+        val expectedAppFileText = """
+            package $packageName
 
-import android.app.Application
-import dagger.hilt.android.HiltAndroidApp
-
-@HiltAndroidApp
-class ${className} : Application() {
-}"""
+            import android.app.Application
+            import dagger.hilt.android.HiltAndroidApp
+            
+            @HiltAndroidApp
+            class $className : Application() {
+            }
+            """.trimIndent().trimStart().trimEnd()
     }
 }
