@@ -32,15 +32,6 @@ No. It is easily done with the existing codebase, but I expect that only a small
 ## What's going to happen if I try to use this plugin on a non-Android project?
 You're expected to see a notification telling you that's impossible, and that's it. Your project files are not supposed to change.
 
-## Does this plugin contain tests?
-Unfortunately, no. [The documentation on this topic](https://plugins.jetbrains.com/docs/intellij/testing-plugins.html) is pretty scarce. I spent a lot of time trying to configure test projects the way the test environment recognises them as Android projects, didn't progress much (some close-to-useless unit tests were written though, but they are not present here) and gave up because I was quite low on time.
-
-## "Low on time"? Did you have a deadline?
-Something like that, yes. This plugin was created as a test assignment for [JetBrains](https://www.jetbrains.com/). The development took about 8 full workdays.
-
-## In that case, will this plugin be supported in the future?
-Time will tell.
-
 ## I have read the source code. Why are Services so abundant in the project?
 Well, mostly because this is my favourite style of writing code in Kotlin: breaking logic down to micro chunks, the shorter a chunk, the better, and then putting each chunk inside a respective class. This approach has several advantages:
 1. The smaller a class is, the less dependencies it has and the easier it is to inject and mock. Such classes are, in general, easily unit-testable. (Not in case of this project though.)
